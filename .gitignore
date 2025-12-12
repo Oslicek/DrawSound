@@ -1,24 +1,71 @@
-# Dependencies
-node_modules/
-__pycache__/
-*.pyc
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Visual Studio
+.vs/
+*.csproj.user
+*.dbmdl
+*.jfm
+
+# Rider
+.idea/
+
+# VS Code
+.vscode/
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# NuGet
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+
+# MAUI / Xamarin
+*.apk
+*.aab
+*.ipa
+*.app
+*.dSYM/
+
+# Android
+*.keystore
+local.properties
+
+# macOS
+.DS_Store
+*.xcworkspace/
+*.xcuserdata/
+
+# Windows
+Thumbs.db
+*.tmp
+*.bak
+
+# User-specific files
+*.rsuser
+*.sln.docstates
+*.userprefs
 
 # Environment
 .env
 .env.local
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Build outputs
-dist/
-build/
-*.egg-info/
-
+appsettings.Development.json
