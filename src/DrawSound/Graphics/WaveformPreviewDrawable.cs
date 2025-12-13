@@ -37,18 +37,15 @@ public class WaveformPreviewDrawable : IDrawable
         canvas.StrokeSize = 2;
 
         float amplitude = dirtyRect.Height * 0.4f;
-        int cycles = 2;
-        int totalPoints = samples.Length * cycles;
-        float xStep = dirtyRect.Width / totalPoints;
+        float xStep = dirtyRect.Width / (samples.Length - 1);
 
         float prevX = 0;
         float prevY = centerY - (samples[0] * amplitude * 2);
 
-        for (int i = 1; i < totalPoints; i++)
+        for (int i = 1; i < samples.Length; i++)
         {
-            int sampleIndex = i % samples.Length;
             float x = i * xStep;
-            float y = centerY - (samples[sampleIndex] * amplitude * 2);
+            float y = centerY - (samples[i] * amplitude * 2);
 
             canvas.DrawLine(prevX, prevY, x, y);
             prevX = x;
