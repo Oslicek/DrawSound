@@ -3,33 +3,34 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:graphics="clr-namespace:DrawSound.Graphics"
              x:Class="DrawSound.MainPage"
-             BackgroundColor="#1a1a2e">
+             BackgroundColor="#1a1a2e"
+             SizeChanged="OnPageSizeChanged">
 
-    <!-- NO ScrollView - content must fit screen -->
-    <Grid RowDefinitions="Auto, 120, Auto, 100, Auto, 60, *" Padding="10">
+    <!-- Portrait Layout (default) -->
+    <Grid x:Name="PortraitLayout" RowDefinitions="Auto, 100, Auto, 80, Auto, 50, *" Padding="8" IsVisible="True">
     
         <!-- Control Buttons - Row 0 -->
         <HorizontalStackLayout Grid.Row="0" 
                                HorizontalOptions="Center" 
                                Spacing="8"
-                               Margin="0,0,0,5">
-            <Button Text="∿" FontSize="16" BackgroundColor="#2a5a2a" TextColor="White"
-                    CornerRadius="6" WidthRequest="45" HeightRequest="35"
+                               Margin="0,0,0,4">
+            <Button Text="∿" FontSize="14" BackgroundColor="#2a5a2a" TextColor="White"
+                    CornerRadius="6" WidthRequest="40" HeightRequest="30"
                     Clicked="OnGenerateSineClicked" />
-            <Button Text="⌫" FontSize="16" BackgroundColor="#5a2a2a" TextColor="White"
-                    CornerRadius="6" WidthRequest="45" HeightRequest="35"
+            <Button Text="⌫" FontSize="14" BackgroundColor="#5a2a2a" TextColor="White"
+                    CornerRadius="6" WidthRequest="40" HeightRequest="30"
                     Clicked="OnClearClicked" />
-            <Button Text="✕" FontSize="16" BackgroundColor="#4a3a2a" TextColor="White"
-                    CornerRadius="6" WidthRequest="45" HeightRequest="35"
+            <Button Text="✕" FontSize="14" BackgroundColor="#4a3a2a" TextColor="White"
+                    CornerRadius="6" WidthRequest="40" HeightRequest="30"
                     Clicked="OnDeleteNodeClicked" />
         </HorizontalStackLayout>
 
-        <!-- Bezier Wave Canvas - Row 1 (reduced height) -->
+        <!-- Bezier Wave Canvas - Row 1 -->
         <Border Grid.Row="1" 
-                StrokeShape="RoundRectangle 6"
+                StrokeShape="RoundRectangle 4"
                 Stroke="#512BD4"
                 StrokeThickness="2"
-                Margin="0,5">
+                Margin="0,4">
             <GraphicsView x:Name="WaveformView"
                           StartInteraction="OnWaveformStartInteraction"
                           DragInteraction="OnWaveformDragInteraction"
@@ -41,12 +42,12 @@
         </Border>
 
         <!-- Harmonics Label - Row 2 -->
-        <Label Grid.Row="2" Text="Harmonics" TextColor="#666" FontSize="10"
-               HorizontalOptions="Center" Margin="0,2" />
+        <Label Grid.Row="2" Text="Harmonics" TextColor="#666" FontSize="9"
+               HorizontalOptions="Center" Margin="0,1" />
 
-        <!-- Harmonic Sliders - Row 3 (reduced height) -->
+        <!-- Harmonic Sliders - Row 3 -->
         <Border Grid.Row="3"
-                StrokeShape="RoundRectangle 6"
+                StrokeShape="RoundRectangle 4"
                 Stroke="#333"
                 StrokeThickness="1"
                 BackgroundColor="#0f0f1a">
@@ -54,12 +55,12 @@
         </Border>
 
         <!-- Result Preview Label - Row 4 -->
-        <Label Grid.Row="4" Text="Result" TextColor="#666" FontSize="10"
-               HorizontalOptions="Center" Margin="0,2" />
+        <Label Grid.Row="4" Text="Result" TextColor="#666" FontSize="9"
+               HorizontalOptions="Center" Margin="0,1" />
 
-        <!-- Result Waveform Preview - Row 5 (reduced height) -->
+        <!-- Result Waveform Preview - Row 5 -->
         <Border Grid.Row="5"
-                StrokeShape="RoundRectangle 6"
+                StrokeShape="RoundRectangle 4"
                 Stroke="#2a5a2a"
                 StrokeThickness="1">
             <GraphicsView x:Name="PreviewView">
@@ -69,15 +70,19 @@
             </GraphicsView>
         </Border>
 
-        <!-- Piano Keyboard - Row 6 (takes remaining space) -->
+        <!-- Piano Keyboard - Row 6 -->
         <Border Grid.Row="6"
-                StrokeShape="RoundRectangle 6"
+                StrokeShape="RoundRectangle 4"
                 Stroke="#444"
                 StrokeThickness="1"
-                Margin="0,5,0,0">
+                Margin="0,4,0,0"
+                MaxHeightRequest="80">
             <GraphicsView x:Name="PianoView" />
         </Border>
     
     </Grid>
+
+    <!-- Landscape Layout (hidden by default, shown when width > height) -->
+    <!-- This will be created programmatically -->
 
 </ContentPage>
