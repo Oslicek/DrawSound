@@ -5,70 +5,110 @@
              x:Class="DrawSound.MainPage"
              BackgroundColor="#1a1a2e">
 
-    <Grid RowDefinitions="Auto, *, *" Padding="20">
+    <ScrollView>
+        <Grid RowDefinitions="Auto, 200, Auto, 150, Auto, 120, Auto" Padding="15">
         
-        <!-- Control Buttons - Top -->
-        <HorizontalStackLayout Grid.Row="0" 
-                               HorizontalOptions="Center" 
-                               Spacing="10"
-                               Margin="0,0,0,10">
-            <Button Text="∿ Sine"
-                    FontSize="14"
-                    BackgroundColor="#2a5a2a"
-                    TextColor="White"
-                    CornerRadius="8"
-                    Padding="12,8"
-                    Clicked="OnGenerateSineClicked" />
-            <Button Text="⌫ Clear"
-                    FontSize="14"
-                    BackgroundColor="#5a2a2a"
-                    TextColor="White"
-                    CornerRadius="8"
-                    Padding="12,8"
-                    Clicked="OnClearClicked" />
-            <Button Text="✕ Delete Node"
-                    FontSize="14"
-                    BackgroundColor="#4a3a2a"
-                    TextColor="White"
-                    CornerRadius="8"
-                    Padding="12,8"
-                    Clicked="OnDeleteNodeClicked" />
-        </HorizontalStackLayout>
+            <!-- Control Buttons - Row 0 -->
+            <HorizontalStackLayout Grid.Row="0" 
+                                   HorizontalOptions="Center" 
+                                   Spacing="8"
+                                   Margin="0,0,0,8">
+                <Button Text="∿"
+                        FontSize="18"
+                        BackgroundColor="#2a5a2a"
+                        TextColor="White"
+                        CornerRadius="8"
+                        WidthRequest="50"
+                        HeightRequest="40"
+                        Clicked="OnGenerateSineClicked" />
+                <Button Text="⌫"
+                        FontSize="18"
+                        BackgroundColor="#5a2a2a"
+                        TextColor="White"
+                        CornerRadius="8"
+                        WidthRequest="50"
+                        HeightRequest="40"
+                        Clicked="OnClearClicked" />
+                <Button Text="✕"
+                        FontSize="18"
+                        BackgroundColor="#4a3a2a"
+                        TextColor="White"
+                        CornerRadius="8"
+                        WidthRequest="50"
+                        HeightRequest="40"
+                        Clicked="OnDeleteNodeClicked" />
+            </HorizontalStackLayout>
 
-        <!-- Bezier Wave Canvas -->
-        <Border Grid.Row="1" 
-                StrokeShape="RoundRectangle 12"
-                Stroke="#512BD4"
-                StrokeThickness="2"
-                Margin="0,0,0,10">
-            <GraphicsView x:Name="WaveformView"
-                          StartInteraction="OnWaveformStartInteraction"
-                          DragInteraction="OnWaveformDragInteraction"
-                          EndInteraction="OnWaveformEndInteraction">
-                <GraphicsView.Drawable>
-                    <graphics:BezierWaveDrawable x:Name="WaveformDrawable" />
-                </GraphicsView.Drawable>
-            </GraphicsView>
-        </Border>
+            <!-- Bezier Wave Canvas - Row 1 -->
+            <Border Grid.Row="1" 
+                    StrokeShape="RoundRectangle 8"
+                    Stroke="#512BD4"
+                    StrokeThickness="2">
+                <GraphicsView x:Name="WaveformView"
+                              StartInteraction="OnWaveformStartInteraction"
+                              DragInteraction="OnWaveformDragInteraction"
+                              EndInteraction="OnWaveformEndInteraction">
+                    <GraphicsView.Drawable>
+                        <graphics:BezierWaveDrawable x:Name="WaveformDrawable" />
+                    </GraphicsView.Drawable>
+                </GraphicsView>
+            </Border>
 
-        <!-- Play Button - Bottom -->
-        <Grid Grid.Row="2">
-            <Button 
-                x:Name="ToneButton"
-                Text="C4"
-                FontSize="72"
-                FontAttributes="Bold"
-                TextColor="White"
-                BackgroundColor="#512BD4"
-                CornerRadius="20"
-                WidthRequest="200"
-                HeightRequest="200"
-                HorizontalOptions="Center"
-                VerticalOptions="Center"
-                Pressed="OnToneButtonPressed"
-                Released="OnToneButtonReleased" />
+            <!-- Harmonics Label - Row 2 -->
+            <Label Grid.Row="2" 
+                   Text="Harmonics" 
+                   TextColor="#888"
+                   FontSize="12"
+                   HorizontalOptions="Center"
+                   Margin="0,8,0,4" />
+
+            <!-- Harmonic Sliders - Row 3 -->
+            <Border Grid.Row="3"
+                    StrokeShape="RoundRectangle 8"
+                    Stroke="#333"
+                    StrokeThickness="1"
+                    BackgroundColor="#0f0f1a"
+                    Padding="5">
+                <Grid x:Name="HarmonicsGrid" ColumnSpacing="2">
+                    <!-- 13 columns for sliders, dynamically created in code -->
+                </Grid>
+            </Border>
+
+            <!-- Result Preview Label - Row 4 -->
+            <Label Grid.Row="4" 
+                   Text="Result Waveform" 
+                   TextColor="#888"
+                   FontSize="12"
+                   HorizontalOptions="Center"
+                   Margin="0,8,0,4" />
+
+            <!-- Result Waveform Preview - Row 5 -->
+            <Border Grid.Row="5"
+                    StrokeShape="RoundRectangle 8"
+                    Stroke="#2a5a2a"
+                    StrokeThickness="2">
+                <GraphicsView x:Name="PreviewView">
+                    <GraphicsView.Drawable>
+                        <graphics:WaveformPreviewDrawable x:Name="PreviewDrawable" />
+                    </GraphicsView.Drawable>
+                </GraphicsView>
+            </Border>
+
+            <!-- Play Button - Row 6 -->
+            <Button Grid.Row="6"
+                    x:Name="ToneButton"
+                    Text="▶ C4"
+                    FontSize="32"
+                    FontAttributes="Bold"
+                    TextColor="White"
+                    BackgroundColor="#512BD4"
+                    CornerRadius="15"
+                    HeightRequest="80"
+                    Margin="40,15,40,10"
+                    Pressed="OnToneButtonPressed"
+                    Released="OnToneButtonReleased" />
+        
         </Grid>
-        
-    </Grid>
+    </ScrollView>
 
 </ContentPage>
