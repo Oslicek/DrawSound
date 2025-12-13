@@ -15,25 +15,31 @@
 | Language | C# |
 | Primary Platform | Android 6.0+ (API 23+) |
 | Audio | 44.1kHz, 32-bit float, wavetable synthesis |
+| Testing | xUnit |
 
 ## Project Structure
 
 ```
 DrawSound/
 ├── src/
-│   └── DrawSound/
-│       ├── Platforms/
-│       │   └── Android/
-│       │       └── Services/
-│       │           └── TonePlayer.cs    # Wavetable audio player
-│       ├── Services/
-│       │   └── ITonePlayer.cs           # Audio interface
-│       ├── Resources/
-│       ├── App.xaml
-│       ├── AppShell.xaml
-│       ├── MainPage.xaml                # Synthesizer UI
-│       ├── MauiProgram.cs
-│       └── DrawSound.csproj
+│   ├── DrawSound/                    # MAUI application
+│   │   ├── Platforms/
+│   │   │   └── Android/
+│   │   │       └── Services/
+│   │   │           └── TonePlayer.cs # Android AudioTrack player
+│   │   ├── Services/
+│   │   │   └── ITonePlayer.cs        # Audio interface
+│   │   ├── MainPage.xaml             # Synthesizer UI
+│   │   └── MauiProgram.cs
+│   │
+│   └── DrawSound.Core/               # Shared library (platform-independent)
+│       └── Audio/
+│           └── WaveTableGenerator.cs # Wavetable generation
+│
+├── tests/
+│   └── DrawSound.Tests/              # Unit tests
+│       └── WaveTableGeneratorTests.cs
+│
 ├── .gitignore
 ├── global.json
 ├── PROJECT_RULES.md
@@ -41,25 +47,13 @@ DrawSound/
 └── README.md
 ```
 
-## Current State
-
-**Phase:** Single-tone synthesizer with wavetable synthesis
-
-**Completed:**
-- [x] Git repository with GitHub remote
-- [x] .NET 10 LTS environment configured
-- [x] MAUI project scaffold
-- [x] Basic synthesizer UI (single C4 button)
-- [x] Audio service with wavetable approach (44.1kHz, 32-bit float)
-
-**Current Features:**
-- Single button plays middle C (261.63 Hz)
-- Press to play, release to stop
-- Wavetable-based tone generation
-
 ## Architecture
 
 **Pattern:** Service-based with Dependency Injection
+
+**Layers:**
+- `DrawSound.Core` - Platform-independent audio logic (wavetable generation)
+- `DrawSound` - MAUI app with platform-specific implementations
 
 **Audio Engine:**
 - Sample Rate: 44,100 Hz
@@ -68,11 +62,24 @@ DrawSound/
 
 ## Key Components
 
-| Component | Purpose |
-|-----------|---------|
-| `ITonePlayer` | Audio playback interface |
-| `TonePlayer` | Android AudioTrack implementation |
-| `MainPage` | Synthesizer UI with tone button |
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `WaveTableGenerator` | Core | Generates sine wave tables |
+| `ITonePlayer` | DrawSound | Audio playback interface |
+| `TonePlayer` | Android | Android AudioTrack implementation |
+| `MainPage` | DrawSound | Synthesizer UI with tone button |
+
+## Tests
+
+| Test Class | Tests | Purpose |
+|------------|-------|---------|
+| `WaveTableGeneratorTests` | 7 | Validates sine wave generation |
+
+**Test Coverage:**
+- Wave shape verification (start, peak, zero-crossing, trough)
+- Sample count accuracy
+- Amplitude range validation
+- Multiple frequency support
 
 ## Test Devices
 
@@ -80,8 +87,22 @@ DrawSound/
 - Samsung Galaxy Tab S9 (SM-X710)
 - Android Emulator (Pixel 9 Pro)
 
+## Current State
+
+**Phase:** TDD refactoring complete
+
+**Completed:**
+- [x] Project setup with .NET 10 LTS
+- [x] Single-tone synthesizer (C4 button)
+- [x] Wavetable synthesis (44.1kHz, 32-bit float)
+- [x] Extracted shared WaveTableGenerator to Core library
+- [x] Unit tests for wave generation
+
+**Current Features:**
+- Single button plays middle C (261.63 Hz)
+- Press to play, release to stop
+
 ## Notes
 
 - GitHub: https://github.com/Oslicek/DrawSound
 - WiFi debugging enabled on physical devices
-

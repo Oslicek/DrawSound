@@ -1,4 +1,5 @@
 using Android.Media;
+using DrawSound.Core.Audio;
 
 namespace DrawSound.Services;
 
@@ -9,16 +10,20 @@ public class TonePlayer : ITonePlayer, IDisposable
     private Task? _playTask;
     
     private const int SampleRate = 44100;
+    private readonly WaveTableGenerator _waveTableGenerator;
     private float[]? _waveTable;
-    private double _waveTableFrequency;
+
+    public TonePlayer()
+    {
+        _waveTableGenerator = new WaveTableGenerator(SampleRate);
+    }
 
     public void StartTone(double frequency)
     {
         StopTone();
 
-        // Generate wavetable for one cycle of the sine wave
-        _waveTable = GenerateWaveTable(frequency);
-        _waveTableFrequency = frequency;
+        // Generate wavetable using shared generator
+        _waveTable = _waveTableGenerator.GenerateSineWave(frequency);
 
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
@@ -46,26 +51,6 @@ public class TonePlayer : ITonePlayer, IDisposable
         _audioTrack.Play();
 
         _playTask = Task.Run(() => PlayWaveTable(minBufferSize / sizeof(float), token), token);
-    }
-
-    private float[] GenerateWaveTable(double frequency)
-    {
-        // Calculate samples per cycle
-        // For 261.63 Hz at 44100 Hz: 44100 / 261.63 ≈ 168.6 samples
-        int samplesPerCycle = (int)Math.Round(SampleRate / frequency);
-        
-        // Ensure at least 2 samples
-        samplesPerCycle = Math.Max(samplesPerCycle, 2);
-
-        var waveTable = new float[samplesPerCycle];
-        
-        for (int i = 0; i < samplesPerCycle; i++)
-        {
-            double phase = 2.0 * Math.PI * i / samplesPerCycle;
-            waveTable[i] = (float)(Math.Sin(phase) * 0.5); // 50% amplitude
-        }
-
-        return waveTable;
     }
 
     private void PlayWaveTable(int bufferSamples, CancellationToken token)
@@ -122,4 +107,3 @@ public class TonePlayer : ITonePlayer, IDisposable
         StopTone();
     }
 }
-
