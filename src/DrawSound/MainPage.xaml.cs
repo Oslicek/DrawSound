@@ -8,10 +8,9 @@ public partial class MainPage : ContentPage
 {
     private const double MiddleC = 261.63;
     private const int SampleRate = 44100;
-    private const int EditingSamples = 256; // Fixed editing resolution
+    private const int EditingSamples = 256;
     
     private readonly ITonePlayer _tonePlayer;
-    private readonly WaveTableGenerator _waveTableGenerator;
     private bool _isPlaying;
     private float _canvasWidth;
     private float _canvasHeight;
@@ -20,25 +19,23 @@ public partial class MainPage : ContentPage
     {
         InitializeComponent();
         _tonePlayer = tonePlayer;
-        _waveTableGenerator = new WaveTableGenerator(SampleRate);
 
-        // Initialize with a sine wave at editing resolution
-        WaveformDrawable.GenerateSineWave();
         WaveformDrawable.WaveTableChanged += OnWaveTableChanged;
     }
 
-    /// <summary>
-    /// Resample the editing wavetable to the correct length for the target frequency
-    /// </summary>
     private float[] GetPlaybackWaveTable(float[] editingWaveTable, double frequency)
     {
-        // Calculate correct samples per cycle for this frequency
         int targetSamples = (int)Math.Round(SampleRate / frequency);
         return ResampleWaveTable(editingWaveTable, targetSamples);
     }
 
     private static float[] ResampleWaveTable(float[] source, int targetLength)
     {
+        if (source.Length == 0)
+        {
+            return new float[targetLength];
+        }
+
         var result = new float[targetLength];
         for (int i = 0; i < targetLength; i++)
         {
@@ -56,7 +53,6 @@ public partial class MainPage : ContentPage
     {
         if (_isPlaying)
         {
-            // Resample to correct frequency before updating
             var playbackWave = GetPlaybackWaveTable(waveTable, MiddleC);
             _tonePlayer.UpdateWaveTable(playbackWave);
         }
@@ -72,6 +68,12 @@ public partial class MainPage : ContentPage
     private void OnClearClicked(object? sender, EventArgs e)
     {
         WaveformDrawable.ClearWave();
+        WaveformView.Invalidate();
+    }
+
+    private void OnDeleteNodeClicked(object? sender, EventArgs e)
+    {
+        WaveformDrawable.DeleteSelectedNode();
         WaveformView.Invalidate();
     }
 
@@ -113,8 +115,7 @@ public partial class MainPage : ContentPage
         WaveformDrawable.SetPlaying(true);
         WaveformView.Invalidate();
 
-        // Get editing wavetable and resample to correct frequency
-        var editingWave = WaveformDrawable.GetWaveTable();
+        var editingWave = WaveformDrawable.GetWaveTable(EditingSamples);
         var playbackWave = GetPlaybackWaveTable(editingWave, MiddleC);
         _tonePlayer.StartTone(MiddleC, playbackWave);
     }

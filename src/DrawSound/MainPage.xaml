@@ -10,25 +10,32 @@
         <!-- Control Buttons - Top -->
         <HorizontalStackLayout Grid.Row="0" 
                                HorizontalOptions="Center" 
-                               Spacing="15"
+                               Spacing="10"
                                Margin="0,0,0,10">
             <Button Text="∿ Sine"
-                    FontSize="16"
+                    FontSize="14"
                     BackgroundColor="#2a5a2a"
                     TextColor="White"
                     CornerRadius="8"
-                    Padding="15,8"
+                    Padding="12,8"
                     Clicked="OnGenerateSineClicked" />
             <Button Text="⌫ Clear"
-                    FontSize="16"
+                    FontSize="14"
                     BackgroundColor="#5a2a2a"
                     TextColor="White"
                     CornerRadius="8"
-                    Padding="15,8"
+                    Padding="12,8"
                     Clicked="OnClearClicked" />
+            <Button Text="✕ Delete Node"
+                    FontSize="14"
+                    BackgroundColor="#4a3a2a"
+                    TextColor="White"
+                    CornerRadius="8"
+                    Padding="12,8"
+                    Clicked="OnDeleteNodeClicked" />
         </HorizontalStackLayout>
 
-        <!-- Editable Wave Canvas -->
+        <!-- Bezier Wave Canvas -->
         <Border Grid.Row="1" 
                 StrokeShape="RoundRectangle 12"
                 Stroke="#512BD4"
@@ -39,7 +46,7 @@
                           DragInteraction="OnWaveformDragInteraction"
                           EndInteraction="OnWaveformEndInteraction">
                 <GraphicsView.Drawable>
-                    <graphics:EditableWaveformDrawable x:Name="WaveformDrawable" />
+                    <graphics:BezierWaveDrawable x:Name="WaveformDrawable" />
                 </GraphicsView.Drawable>
             </GraphicsView>
         </Border>

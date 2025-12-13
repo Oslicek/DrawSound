@@ -101,11 +101,15 @@ DrawSound/
 **Current Features:**
 - Single button plays middle C (261.63 Hz)
 - Press to play, release to stop
-- Editable waveform canvas with smooth line drawing
+- Bezier curve wave editor (like Inkscape)
+  - Tap to add nodes
+  - Drag nodes to move them
+  - Drag handles to shape curves
+  - "Delete Node" to remove selected node
+- "Sine" button generates sine wave with editable nodes
+- "Clear" button clears canvas for drawing from scratch
 - Real-time audio updates when editing while playing
 - Wave color changes (cyan → lime) when playing
-- "Sine" button to generate/reset sine wave
-- "Clear" button to create wave from scratch
 
 ## Notes
 
