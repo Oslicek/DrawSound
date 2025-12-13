@@ -1,5 +1,6 @@
 ﻿using DrawSound.Controls;
 using DrawSound.Core.Audio;
+using DrawSound.Core.Utils;
 using DrawSound.Graphics;
 using DrawSound.Services;
 
@@ -10,11 +11,15 @@ public partial class MainPage : ContentPage
     private const double MiddleC = 261.63;
     private const int SampleRate = 44100;
     private const int EditingSamples = 256;
+    private const int PreviewSamples = 64; // Reduced for performance
+    private const int ThrottleMs = 50; // Max 20 updates/second
     
     private readonly ITonePlayer _tonePlayer;
     private readonly float[] _harmonicLevels;
     private readonly VerticalSlider[] _harmonicSliders;
+    private readonly UpdateThrottler _sliderThrottler;
     private bool _isPlaying;
+    private bool _pendingUpdate;
     private float _canvasWidth;
     private float _canvasHeight;
 
@@ -24,6 +29,7 @@ public partial class MainPage : ContentPage
         _tonePlayer = tonePlayer;
         _harmonicLevels = HarmonicMixer.GetDefaultLevels();
         _harmonicSliders = new VerticalSlider[HarmonicMixer.MaxHarmonics];
+        _sliderThrottler = new UpdateThrottler(ThrottleMs);
 
         CreateHarmonicSliders();
         WaveformDrawable.WaveTableChanged += OnWaveTableChanged;
@@ -64,11 +70,7 @@ public partial class MainPage : ContentPage
             slider.ValueChanged += (s, value) =>
             {
                 _harmonicLevels[index] = value;
-                UpdatePreview();
-                if (_isPlaying)
-                {
-                    UpdatePlayback();
-                }
+                ThrottledUpdate();
             };
 
             _harmonicSliders[i] = slider;
@@ -105,9 +107,40 @@ public partial class MainPage : ContentPage
         return HarmonicMixer.MixHarmonics(baseWave, _harmonicLevels, targetSamples);
     }
 
+    private void ThrottledUpdate()
+    {
+        if (_sliderThrottler.ShouldUpdate())
+        {
+            PerformUpdate();
+        }
+        else if (!_pendingUpdate)
+        {
+            _pendingUpdate = true;
+            int delay = _sliderThrottler.GetDeferredDelayMs();
+            Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(delay), () =>
+            {
+                _pendingUpdate = false;
+                if (_sliderThrottler.NeedsDeferredUpdate)
+                {
+                    _sliderThrottler.ShouldUpdate(); // Reset the throttle
+                    PerformUpdate();
+                }
+            });
+        }
+    }
+
+    private void PerformUpdate()
+    {
+        UpdatePreview();
+        if (_isPlaying)
+        {
+            UpdatePlayback();
+        }
+    }
+
     private void UpdatePreview()
     {
-        var mixedWave = GetMixedWaveTable(EditingSamples);
+        var mixedWave = GetMixedWaveTable(PreviewSamples);
         PreviewDrawable.SetWaveTable(mixedWave);
         PreviewView.Invalidate();
     }

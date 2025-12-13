@@ -211,10 +211,10 @@ public class HarmonicMixerTests
     }
 
     [Theory]
-    [InlineData(3)]   // 3rd harmonic
-    [InlineData(5)]   // 5th harmonic
-    [InlineData(7)]   // 7th harmonic
-    [InlineData(12)]  // 12th harmonic
+    [InlineData(3)]   // 4th harmonic (4f)
+    [InlineData(5)]   // 6th harmonic (6f)
+    [InlineData(7)]   // 8th harmonic (8f)
+    [InlineData(11)]  // 12th harmonic (12f) - max index is 11 for 12 harmonics
     public void MixHarmonics_HigherHarmonics_IncreaseFrequency(int harmonicIndex)
     {
         // Arrange
