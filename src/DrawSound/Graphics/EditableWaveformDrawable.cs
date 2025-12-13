@@ -5,6 +5,10 @@ public class EditableWaveformDrawable : IDrawable
     private float[] _waveTable;
     private readonly object _lock = new();
     private bool _isPlaying;
+    
+    // For smooth line drawing
+    private int _lastTouchIndex = -1;
+    private float _lastTouchValue;
 
     public Color WaveColor { get; set; } = Colors.Cyan;
     public Color WaveColorPlaying { get; set; } = Colors.Lime;
@@ -16,8 +20,7 @@ public class EditableWaveformDrawable : IDrawable
 
     public EditableWaveformDrawable()
     {
-        // Initialize with a default sine wave (will be set properly later)
-        _waveTable = GenerateDefaultSineWave(128);
+        _waveTable = GenerateDefaultSineWave(256);
     }
 
     private static float[] GenerateDefaultSineWave(int samples)
@@ -52,51 +55,105 @@ public class EditableWaveformDrawable : IDrawable
         _isPlaying = isPlaying;
     }
 
-    public void HandleTouch(float x, float y, float canvasWidth, float canvasHeight)
+    public void GenerateSineWave()
+    {
+        lock (_lock)
+        {
+            _waveTable = GenerateDefaultSineWave(_waveTable.Length);
+        }
+        WaveTableChanged?.Invoke(this, GetWaveTable());
+    }
+
+    public void ClearWave()
+    {
+        lock (_lock)
+        {
+            for (int i = 0; i < _waveTable.Length; i++)
+            {
+                _waveTable[i] = 0f;
+            }
+        }
+        WaveTableChanged?.Invoke(this, GetWaveTable());
+    }
+
+    public void StartTouch(float x, float y, float canvasWidth, float canvasHeight)
     {
         if (canvasWidth <= 0 || canvasHeight <= 0) return;
 
+        var (index, value) = ScreenToWave(x, y, canvasWidth, canvasHeight);
+        
         lock (_lock)
         {
-            // Convert touch position to wave table index and value
-            float normalizedX = Math.Clamp(x / canvasWidth, 0f, 1f);
-            int index = (int)(normalizedX * (_waveTable.Length - 1));
-            
-            // Convert Y to amplitude (-0.5 to 0.5)
-            float centerY = canvasHeight / 2;
-            float amplitude = canvasHeight * 0.4f;
-            float normalizedY = (centerY - y) / (amplitude * 2);
-            normalizedY = Math.Clamp(normalizedY, -0.5f, 0.5f);
-
-            // Update the sample and neighbors for smooth editing
-            UpdateSampleWithSmoothing(index, normalizedY);
+            _waveTable[index] = value;
+            _lastTouchIndex = index;
+            _lastTouchValue = value;
         }
 
         WaveTableChanged?.Invoke(this, GetWaveTable());
     }
 
-    private void UpdateSampleWithSmoothing(int centerIndex, float value)
+    public void DragTouch(float x, float y, float canvasWidth, float canvasHeight)
     {
-        // Update center sample
-        _waveTable[centerIndex] = value;
+        if (canvasWidth <= 0 || canvasHeight <= 0) return;
 
-        // Smooth neighboring samples (3 samples on each side)
-        int smoothRadius = 3;
-        for (int offset = 1; offset <= smoothRadius; offset++)
+        var (index, value) = ScreenToWave(x, y, canvasWidth, canvasHeight);
+
+        lock (_lock)
         {
-            float weight = 1f - (offset / (float)(smoothRadius + 1));
-            
-            int leftIndex = centerIndex - offset;
-            int rightIndex = centerIndex + offset;
+            if (_lastTouchIndex >= 0)
+            {
+                // Interpolate between last point and current point for smooth line
+                InterpolateLine(_lastTouchIndex, _lastTouchValue, index, value);
+            }
+            else
+            {
+                _waveTable[index] = value;
+            }
 
-            if (leftIndex >= 0)
-            {
-                _waveTable[leftIndex] = Lerp(_waveTable[leftIndex], value, weight * 0.5f);
-            }
-            if (rightIndex < _waveTable.Length)
-            {
-                _waveTable[rightIndex] = Lerp(_waveTable[rightIndex], value, weight * 0.5f);
-            }
+            _lastTouchIndex = index;
+            _lastTouchValue = value;
+        }
+
+        WaveTableChanged?.Invoke(this, GetWaveTable());
+    }
+
+    public void EndTouch()
+    {
+        _lastTouchIndex = -1;
+    }
+
+    private (int index, float value) ScreenToWave(float x, float y, float canvasWidth, float canvasHeight)
+    {
+        float normalizedX = Math.Clamp(x / canvasWidth, 0f, 1f);
+        int index = (int)(normalizedX * (_waveTable.Length - 1));
+        index = Math.Clamp(index, 0, _waveTable.Length - 1);
+
+        float centerY = canvasHeight / 2;
+        float amplitude = canvasHeight * 0.4f;
+        float normalizedY = (centerY - y) / (amplitude * 2);
+        normalizedY = Math.Clamp(normalizedY, -0.5f, 0.5f);
+
+        return (index, normalizedY);
+    }
+
+    private void InterpolateLine(int fromIndex, float fromValue, int toIndex, float toValue)
+    {
+        if (fromIndex == toIndex)
+        {
+            _waveTable[toIndex] = toValue;
+            return;
+        }
+
+        int startIndex = Math.Min(fromIndex, toIndex);
+        int endIndex = Math.Max(fromIndex, toIndex);
+        
+        float startValue = fromIndex < toIndex ? fromValue : toValue;
+        float endValue = fromIndex < toIndex ? toValue : fromValue;
+
+        for (int i = startIndex; i <= endIndex; i++)
+        {
+            float t = (float)(i - startIndex) / (endIndex - startIndex);
+            _waveTable[i] = Lerp(startValue, endValue, t);
         }
     }
 
@@ -104,11 +161,9 @@ public class EditableWaveformDrawable : IDrawable
 
     public void Draw(ICanvas canvas, RectF dirtyRect)
     {
-        // Draw background
         canvas.FillColor = BackgroundColor;
         canvas.FillRectangle(dirtyRect);
 
-        // Draw grid
         DrawGrid(canvas, dirtyRect);
 
         float[] samples;
@@ -117,7 +172,6 @@ public class EditableWaveformDrawable : IDrawable
             samples = (float[])_waveTable.Clone();
         }
 
-        // Draw the waveform
         DrawWaveform(canvas, dirtyRect, samples);
     }
 
@@ -127,17 +181,13 @@ public class EditableWaveformDrawable : IDrawable
         canvas.StrokeSize = 1;
 
         float centerY = rect.Height / 2;
-        
-        // Center line (zero)
         canvas.DrawLine(0, centerY, rect.Width, centerY);
 
-        // Quarter lines
         float quarterHeight = rect.Height / 4;
         canvas.StrokeDashPattern = new float[] { 5, 5 };
         canvas.DrawLine(0, quarterHeight, rect.Width, quarterHeight);
         canvas.DrawLine(0, rect.Height - quarterHeight, rect.Width, rect.Height - quarterHeight);
         
-        // Vertical lines (quarters of the cycle)
         float quarterWidth = rect.Width / 4;
         for (int i = 1; i < 4; i++)
         {
@@ -162,16 +212,15 @@ public class EditableWaveformDrawable : IDrawable
 
         for (int i = 0; i < samples.Length; i++)
         {
-            float x = i * xStep;
-            float y = centerY - (samples[i] * amplitude * 2);
+            float xPos = i * xStep;
+            float yPos = centerY - (samples[i] * amplitude * 2);
 
             if (i == 0)
-                path.MoveTo(x, y);
+                path.MoveTo(xPos, yPos);
             else
-                path.LineTo(x, y);
+                path.LineTo(xPos, yPos);
         }
 
         canvas.DrawPath(path);
     }
 }
-

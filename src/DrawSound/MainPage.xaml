@@ -5,10 +5,31 @@
              x:Class="DrawSound.MainPage"
              BackgroundColor="#1a1a2e">
 
-    <Grid RowDefinitions="*, *" Padding="20">
+    <Grid RowDefinitions="Auto, *, *" Padding="20">
         
-        <!-- Editable Wave Canvas - Top Half -->
-        <Border Grid.Row="0" 
+        <!-- Control Buttons - Top -->
+        <HorizontalStackLayout Grid.Row="0" 
+                               HorizontalOptions="Center" 
+                               Spacing="15"
+                               Margin="0,0,0,10">
+            <Button Text="∿ Sine"
+                    FontSize="16"
+                    BackgroundColor="#2a5a2a"
+                    TextColor="White"
+                    CornerRadius="8"
+                    Padding="15,8"
+                    Clicked="OnGenerateSineClicked" />
+            <Button Text="⌫ Clear"
+                    FontSize="16"
+                    BackgroundColor="#5a2a2a"
+                    TextColor="White"
+                    CornerRadius="8"
+                    Padding="15,8"
+                    Clicked="OnClearClicked" />
+        </HorizontalStackLayout>
+
+        <!-- Editable Wave Canvas -->
+        <Border Grid.Row="1" 
                 StrokeShape="RoundRectangle 12"
                 Stroke="#512BD4"
                 StrokeThickness="2"
@@ -23,8 +44,8 @@
             </GraphicsView>
         </Border>
 
-        <!-- Button - Bottom Half -->
-        <Grid Grid.Row="1">
+        <!-- Play Button - Bottom -->
+        <Grid Grid.Row="2">
             <Button 
                 x:Name="ToneButton"
                 Text="C4"

@@ -8,7 +8,7 @@ public partial class MainPage : ContentPage
 {
     private const double MiddleC = 261.63;
     private const int SampleRate = 44100;
-    private const int WaveTableSamples = 256; // Samples per cycle for editing
+    private const int EditingSamples = 256; // Fixed editing resolution
     
     private readonly ITonePlayer _tonePlayer;
     private readonly WaveTableGenerator _waveTableGenerator;
@@ -22,15 +22,19 @@ public partial class MainPage : ContentPage
         _tonePlayer = tonePlayer;
         _waveTableGenerator = new WaveTableGenerator(SampleRate);
 
-        // Initialize with a sine wave
-        var initialWave = _waveTableGenerator.GenerateSineWave(MiddleC);
-        
-        // Resample to our editing resolution
-        var editableWave = ResampleWaveTable(initialWave, WaveTableSamples);
-        WaveformDrawable.SetWaveTable(editableWave);
-
-        // Subscribe to wave changes
+        // Initialize with a sine wave at editing resolution
+        WaveformDrawable.GenerateSineWave();
         WaveformDrawable.WaveTableChanged += OnWaveTableChanged;
+    }
+
+    /// <summary>
+    /// Resample the editing wavetable to the correct length for the target frequency
+    /// </summary>
+    private float[] GetPlaybackWaveTable(float[] editingWaveTable, double frequency)
+    {
+        // Calculate correct samples per cycle for this frequency
+        int targetSamples = (int)Math.Round(SampleRate / frequency);
+        return ResampleWaveTable(editingWaveTable, targetSamples);
     }
 
     private static float[] ResampleWaveTable(float[] source, int targetLength)
@@ -52,38 +56,49 @@ public partial class MainPage : ContentPage
     {
         if (_isPlaying)
         {
-            _tonePlayer.UpdateWaveTable(waveTable);
+            // Resample to correct frequency before updating
+            var playbackWave = GetPlaybackWaveTable(waveTable, MiddleC);
+            _tonePlayer.UpdateWaveTable(playbackWave);
         }
+        WaveformView.Invalidate();
+    }
+
+    private void OnGenerateSineClicked(object? sender, EventArgs e)
+    {
+        WaveformDrawable.GenerateSineWave();
+        WaveformView.Invalidate();
+    }
+
+    private void OnClearClicked(object? sender, EventArgs e)
+    {
+        WaveformDrawable.ClearWave();
         WaveformView.Invalidate();
     }
 
     private void OnWaveformStartInteraction(object? sender, TouchEventArgs e)
     {
         UpdateCanvasSize();
-        HandleTouch(e.Touches.FirstOrDefault());
+        var point = e.Touches.FirstOrDefault();
+        if (point != default)
+        {
+            WaveformDrawable.StartTouch(point.X, point.Y, _canvasWidth, _canvasHeight);
+            WaveformView.Invalidate();
+        }
     }
 
     private void OnWaveformDragInteraction(object? sender, TouchEventArgs e)
     {
-        HandleTouch(e.Touches.FirstOrDefault());
+        var point = e.Touches.FirstOrDefault();
+        if (point != default)
+        {
+            WaveformDrawable.DragTouch(point.X, point.Y, _canvasWidth, _canvasHeight);
+            WaveformView.Invalidate();
+        }
     }
 
     private void OnWaveformEndInteraction(object? sender, TouchEventArgs e)
     {
-        // Touch ended - no action needed
-    }
-
-    private void HandleTouch(PointF? point)
-    {
-        if (point == null) return;
-        
-        WaveformDrawable.HandleTouch(
-            (float)point.Value.X, 
-            (float)point.Value.Y, 
-            _canvasWidth, 
-            _canvasHeight);
-        
-        WaveformView.Invalidate();
+        WaveformDrawable.EndTouch();
     }
 
     private void UpdateCanvasSize()
@@ -98,8 +113,10 @@ public partial class MainPage : ContentPage
         WaveformDrawable.SetPlaying(true);
         WaveformView.Invalidate();
 
-        var waveTable = WaveformDrawable.GetWaveTable();
-        _tonePlayer.StartTone(MiddleC, waveTable);
+        // Get editing wavetable and resample to correct frequency
+        var editingWave = WaveformDrawable.GetWaveTable();
+        var playbackWave = GetPlaybackWaveTable(editingWave, MiddleC);
+        _tonePlayer.StartTone(MiddleC, playbackWave);
     }
 
     private void OnToneButtonReleased(object? sender, EventArgs e)
