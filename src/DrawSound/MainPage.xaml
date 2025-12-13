@@ -7,15 +7,18 @@
 
     <Grid RowDefinitions="*, *" Padding="20">
         
-        <!-- Wave Canvas - Top Half -->
+        <!-- Editable Wave Canvas - Top Half -->
         <Border Grid.Row="0" 
                 StrokeShape="RoundRectangle 12"
                 Stroke="#512BD4"
                 StrokeThickness="2"
                 Margin="0,0,0,10">
-            <GraphicsView x:Name="WaveformView">
+            <GraphicsView x:Name="WaveformView"
+                          StartInteraction="OnWaveformStartInteraction"
+                          DragInteraction="OnWaveformDragInteraction"
+                          EndInteraction="OnWaveformEndInteraction">
                 <GraphicsView.Drawable>
-                    <graphics:WaveformDrawable x:Name="WaveformDrawable" />
+                    <graphics:EditableWaveformDrawable x:Name="WaveformDrawable" />
                 </GraphicsView.Drawable>
             </GraphicsView>
         </Border>

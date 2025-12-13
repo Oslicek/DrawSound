@@ -12,6 +12,7 @@ public class TonePlayer : ITonePlayer, IDisposable
     private const int SampleRate = 44100;
     private readonly WaveTableGenerator _waveTableGenerator;
     private float[]? _waveTable;
+    private readonly object _waveTableLock = new();
 
     public TonePlayer()
     {
@@ -20,15 +21,22 @@ public class TonePlayer : ITonePlayer, IDisposable
 
     public void StartTone(double frequency)
     {
+        var waveTable = _waveTableGenerator.GenerateSineWave(frequency);
+        StartTone(frequency, waveTable);
+    }
+
+    public void StartTone(double frequency, float[] waveTable)
+    {
         StopTone();
 
-        // Generate wavetable using shared generator
-        _waveTable = _waveTableGenerator.GenerateSineWave(frequency);
+        lock (_waveTableLock)
+        {
+            _waveTable = (float[])waveTable.Clone();
+        }
 
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
 
-        // Calculate buffer size (use at least minBufferSize)
         var minBufferSize = AudioTrack.GetMinBufferSize(
             SampleRate,
             ChannelOut.Mono,
@@ -53,20 +61,39 @@ public class TonePlayer : ITonePlayer, IDisposable
         _playTask = Task.Run(() => PlayWaveTable(minBufferSize / sizeof(float), token), token);
     }
 
+    public void UpdateWaveTable(float[] waveTable)
+    {
+        lock (_waveTableLock)
+        {
+            _waveTable = (float[])waveTable.Clone();
+        }
+    }
+
     private void PlayWaveTable(int bufferSamples, CancellationToken token)
     {
-        if (_waveTable == null) return;
-
         var buffer = new float[bufferSamples];
         int waveTableIndex = 0;
-        int waveTableLength = _waveTable.Length;
 
         while (!token.IsCancellationRequested)
         {
+            float[]? currentWaveTable;
+            lock (_waveTableLock)
+            {
+                currentWaveTable = _waveTable;
+            }
+
+            if (currentWaveTable == null || currentWaveTable.Length == 0)
+            {
+                Thread.Sleep(10);
+                continue;
+            }
+
+            int waveTableLength = currentWaveTable.Length;
+
             // Fill buffer by looping through the wavetable
             for (int i = 0; i < bufferSamples; i++)
             {
-                buffer[i] = _waveTable[waveTableIndex];
+                buffer[i] = currentWaveTable[waveTableIndex % waveTableLength];
                 waveTableIndex = (waveTableIndex + 1) % waveTableLength;
             }
 
@@ -99,7 +126,6 @@ public class TonePlayer : ITonePlayer, IDisposable
         _cts?.Dispose();
         _cts = null;
         _playTask = null;
-        _waveTable = null;
     }
 
     public void Dispose()

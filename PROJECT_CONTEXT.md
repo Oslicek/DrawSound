@@ -101,7 +101,10 @@ DrawSound/
 **Current Features:**
 - Single button plays middle C (261.63 Hz)
 - Press to play, release to stop
-- Waveform canvas displays the playing wave (top half of screen)
+- Editable waveform canvas (top half of screen)
+- Touch to draw/modify the waveform shape
+- Real-time audio updates when editing while playing
+- Wave color changes (cyan → lime) when playing
 
 ## Notes
 
