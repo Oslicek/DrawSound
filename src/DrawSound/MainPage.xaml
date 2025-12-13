@@ -6,7 +6,7 @@
              BackgroundColor="#1a1a2e">
 
     <!-- NO ScrollView - content must fit screen -->
-    <Grid RowDefinitions="Auto, *, Auto, 120, Auto, 80, Auto" Padding="10">
+    <Grid RowDefinitions="Auto, 120, Auto, 100, Auto, 60, *" Padding="10">
     
         <!-- Control Buttons - Row 0 -->
         <HorizontalStackLayout Grid.Row="0" 
@@ -24,7 +24,7 @@
                     Clicked="OnDeleteNodeClicked" />
         </HorizontalStackLayout>
 
-        <!-- Bezier Wave Canvas - Row 1 (takes remaining space) -->
+        <!-- Bezier Wave Canvas - Row 1 (reduced height) -->
         <Border Grid.Row="1" 
                 StrokeShape="RoundRectangle 6"
                 Stroke="#512BD4"
@@ -44,7 +44,7 @@
         <Label Grid.Row="2" Text="Harmonics" TextColor="#666" FontSize="10"
                HorizontalOptions="Center" Margin="0,2" />
 
-        <!-- Harmonic Sliders - Row 3 -->
+        <!-- Harmonic Sliders - Row 3 (reduced height) -->
         <Border Grid.Row="3"
                 StrokeShape="RoundRectangle 6"
                 Stroke="#333"
@@ -57,7 +57,7 @@
         <Label Grid.Row="4" Text="Result" TextColor="#666" FontSize="10"
                HorizontalOptions="Center" Margin="0,2" />
 
-        <!-- Result Waveform Preview - Row 5 -->
+        <!-- Result Waveform Preview - Row 5 (reduced height) -->
         <Border Grid.Row="5"
                 StrokeShape="RoundRectangle 6"
                 Stroke="#2a5a2a"
@@ -69,19 +69,14 @@
             </GraphicsView>
         </Border>
 
-        <!-- Play Button - Row 6 -->
-        <Button Grid.Row="6"
-                x:Name="ToneButton"
-                Text="▶ C4"
-                FontSize="24"
-                FontAttributes="Bold"
-                TextColor="White"
-                BackgroundColor="#512BD4"
-                CornerRadius="10"
-                HeightRequest="50"
-                Margin="30,8,30,5"
-                Pressed="OnToneButtonPressed"
-                Released="OnToneButtonReleased" />
+        <!-- Piano Keyboard - Row 6 (takes remaining space) -->
+        <Border Grid.Row="6"
+                StrokeShape="RoundRectangle 6"
+                Stroke="#444"
+                StrokeThickness="1"
+                Margin="0,5,0,0">
+            <GraphicsView x:Name="PianoView" />
+        </Border>
     
     </Grid>
 

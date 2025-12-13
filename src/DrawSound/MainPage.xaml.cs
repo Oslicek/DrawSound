@@ -8,7 +8,6 @@ namespace DrawSound;
 
 public partial class MainPage : ContentPage
 {
-    private const double MiddleC = 261.63;
     private const int SampleRate = 44100;
     private const int EditingSamples = 256;
     private const int PreviewSamples = 64;
@@ -18,6 +17,8 @@ public partial class MainPage : ContentPage
     private readonly float[] _harmonicLevels;
     private readonly UpdateThrottler _updateThrottler;
     private readonly HarmonicsView _harmonicsControl;
+    private readonly PianoKeyboard _pianoControl;
+    private double _currentFrequency;
     private bool _isPlaying;
     private bool _pendingUpdate;
     private float _canvasWidth;
@@ -31,12 +32,11 @@ public partial class MainPage : ContentPage
         _harmonicLevels = HarmonicMixer.GetDefaultLevels();
         _updateThrottler = new UpdateThrottler(ThrottleMs);
 
-        // Harmonics sliders - connected to audio processing
+        // Harmonics sliders
         _harmonicsControl = new HarmonicsView();
         _harmonicsControl.ValueChanged += OnHarmonicValueChanged;
         HarmonicsView.Drawable = _harmonicsControl.Drawable;
         
-        // Touch forwarding
         HarmonicsView.StartInteraction += (s, e) => 
         {
             var touch = e.Touches.FirstOrDefault();
@@ -63,10 +63,62 @@ public partial class MainPage : ContentPage
             HarmonicsView.Invalidate();
         };
 
+        // Piano keyboard
+        _pianoControl = new PianoKeyboard();
+        _pianoControl.KeyPressed += OnPianoKeyPressed;
+        _pianoControl.KeyReleased += OnPianoKeyReleased;
+        PianoView.Drawable = _pianoControl.Drawable;
+        
+        PianoView.StartInteraction += (s, e) =>
+        {
+            var touch = e.Touches.FirstOrDefault();
+            if (touch != default)
+            {
+                _pianoControl.OnTouch((float)touch.X, (float)touch.Y,
+                    (float)PianoView.Width, (float)PianoView.Height, isStart: true);
+                PianoView.Invalidate();
+            }
+        };
+        PianoView.DragInteraction += (s, e) =>
+        {
+            var touch = e.Touches.FirstOrDefault();
+            if (touch != default)
+            {
+                _pianoControl.OnTouch((float)touch.X, (float)touch.Y,
+                    (float)PianoView.Width, (float)PianoView.Height, isStart: false);
+                PianoView.Invalidate();
+            }
+        };
+        PianoView.EndInteraction += (s, e) =>
+        {
+            _pianoControl.OnTouchEnd();
+            PianoView.Invalidate();
+        };
+
         WaveformDrawable.WaveTableChanged += OnWaveTableChanged;
         
         // Initial preview update
         Dispatcher.Dispatch(UpdatePreview);
+    }
+
+    private void OnPianoKeyPressed(object? sender, double frequency)
+    {
+        _currentFrequency = frequency;
+        _isPlaying = true;
+        WaveformDrawable.SetPlaying(true);
+        WaveformView.Invalidate();
+
+        var playbackWave = GetPlaybackWaveTable(frequency);
+        _tonePlayer.StartTone(frequency, playbackWave);
+    }
+
+    private void OnPianoKeyReleased(object? sender, EventArgs e)
+    {
+        _isPlaying = false;
+        WaveformDrawable.SetPlaying(false);
+        WaveformView.Invalidate();
+
+        _tonePlayer.StopTone();
     }
 
     private void OnHarmonicValueChanged(object? sender, (int Index, float Value) e)
@@ -128,8 +180,11 @@ public partial class MainPage : ContentPage
 
     private void UpdatePlayback()
     {
-        var playbackWave = GetPlaybackWaveTable(MiddleC);
-        _tonePlayer.UpdateWaveTable(playbackWave);
+        if (_currentFrequency > 0)
+        {
+            var playbackWave = GetPlaybackWaveTable(_currentFrequency);
+            _tonePlayer.UpdateWaveTable(playbackWave);
+        }
     }
 
     private void OnWaveTableChanged(object? sender, float[] waveTable)
@@ -191,24 +246,5 @@ public partial class MainPage : ContentPage
     {
         _canvasWidth = (float)WaveformView.Width;
         _canvasHeight = (float)WaveformView.Height;
-    }
-
-    private void OnToneButtonPressed(object? sender, EventArgs e)
-    {
-        _isPlaying = true;
-        WaveformDrawable.SetPlaying(true);
-        WaveformView.Invalidate();
-
-        var playbackWave = GetPlaybackWaveTable(MiddleC);
-        _tonePlayer.StartTone(MiddleC, playbackWave);
-    }
-
-    private void OnToneButtonReleased(object? sender, EventArgs e)
-    {
-        _isPlaying = false;
-        WaveformDrawable.SetPlaying(false);
-        WaveformView.Invalidate();
-
-        _tonePlayer.StopTone();
     }
 }
