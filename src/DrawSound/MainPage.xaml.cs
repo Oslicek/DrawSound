@@ -11,13 +11,13 @@ public partial class MainPage : ContentPage
     private const double MiddleC = 261.63;
     private const int SampleRate = 44100;
     private const int EditingSamples = 256;
-    private const int PreviewSamples = 64; // Reduced for performance
-    private const int ThrottleMs = 50; // Max 20 updates/second
+    private const int PreviewSamples = 64;
+    private const int ThrottleMs = 50;
     
     private readonly ITonePlayer _tonePlayer;
     private readonly float[] _harmonicLevels;
-    private readonly VerticalSlider[] _harmonicSliders;
     private readonly UpdateThrottler _updateThrottler;
+    private readonly HarmonicsView _harmonicsControl;
     private bool _isPlaying;
     private bool _pendingUpdate;
     private float _canvasWidth;
@@ -25,74 +25,54 @@ public partial class MainPage : ContentPage
     private DateTime _lastWaveformInvalidate = DateTime.MinValue;
 
     public MainPage(ITonePlayer tonePlayer)
-	{
-		InitializeComponent();
+    {
+        InitializeComponent();
         _tonePlayer = tonePlayer;
         _harmonicLevels = HarmonicMixer.GetDefaultLevels();
-        _harmonicSliders = new VerticalSlider[HarmonicMixer.MaxHarmonics];
         _updateThrottler = new UpdateThrottler(ThrottleMs);
 
-        CreateHarmonicSliders();
+        // Create and configure the harmonics control
+        _harmonicsControl = new HarmonicsView(HarmonicMixer.MaxHarmonics);
+        _harmonicsControl.ValueChanged += OnHarmonicValueChanged;
+        HarmonicsView.Drawable = _harmonicsControl.Drawable;
+        
+        // Forward touch events to harmonics control
+        HarmonicsView.StartInteraction += (s, e) => 
+        {
+            var touch = e.Touches.FirstOrDefault();
+            if (touch != default)
+            {
+                _harmonicsControl.HandleStartTouch((float)touch.X, (float)touch.Y, 
+                    (float)HarmonicsView.Width, (float)HarmonicsView.Height);
+                HarmonicsView.Invalidate();
+            }
+        };
+        HarmonicsView.DragInteraction += (s, e) =>
+        {
+            var touch = e.Touches.FirstOrDefault();
+            if (touch != default)
+            {
+                _harmonicsControl.HandleDragTouch((float)touch.X, (float)touch.Y,
+                    (float)HarmonicsView.Width, (float)HarmonicsView.Height);
+                HarmonicsView.Invalidate();
+            }
+        };
+        HarmonicsView.EndInteraction += (s, e) =>
+        {
+            _harmonicsControl.HandleEndTouch();
+            HarmonicsView.Invalidate();
+        };
+
         WaveformDrawable.WaveTableChanged += OnWaveTableChanged;
         
         // Initial preview update
         Dispatcher.Dispatch(UpdatePreview);
     }
 
-    private void CreateHarmonicSliders()
+    private void OnHarmonicValueChanged(object? sender, (int Index, float Value) e)
     {
-        // Create column definitions
-        for (int i = 0; i < HarmonicMixer.MaxHarmonics; i++)
-        {
-            HarmonicsGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
-        }
-        HarmonicsGrid.RowDefinitions.Add(new RowDefinition(GridLength.Star));
-        HarmonicsGrid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-
-        // Labels: f, 2f, 3f, ... 12f
-        string[] labels = { "f", "2f", "3f", "4f", "5f", "6f", "7f", "8f", "9f", "10f", "11f", "12f" };
-
-        for (int i = 0; i < HarmonicMixer.MaxHarmonics; i++)
-        {
-            int index = i; // Capture for closure
-
-            var slider = new VerticalSlider
-            {
-                Value = _harmonicLevels[i],
-                WidthRequest = 28,
-                HeightRequest = 110,
-                HorizontalOptions = LayoutOptions.Center,
-                VerticalOptions = LayoutOptions.Fill,
-                FillColor = i == 0 ? Colors.Cyan : Colors.Orange,
-                ThumbColor = Colors.White,
-                TrackColor = Color.FromArgb("#333")
-            };
-
-            slider.ValueChanged += (s, value) =>
-            {
-                _harmonicLevels[index] = value;
-                ThrottledUpdate();
-            };
-
-            _harmonicSliders[i] = slider;
-            
-            Grid.SetRow(slider, 0);
-            Grid.SetColumn(slider, i);
-            HarmonicsGrid.Add(slider);
-
-            // Label
-            var label = new Label
-            {
-                Text = labels[i],
-                TextColor = i == 0 ? Colors.Cyan : Colors.Gray,
-                FontSize = 9,
-                HorizontalOptions = LayoutOptions.Center,
-                HorizontalTextAlignment = TextAlignment.Center
-            };
-            Grid.SetRow(label, 1);
-            Grid.SetColumn(label, i);
-            HarmonicsGrid.Add(label);
-        }
+        _harmonicLevels[e.Index] = e.Value;
+        ThrottledUpdate();
     }
 
     private float[] GetMixedWaveTable(int samples)
@@ -123,7 +103,7 @@ public partial class MainPage : ContentPage
                 _pendingUpdate = false;
                 if (_updateThrottler.NeedsDeferredUpdate)
                 {
-                    _updateThrottler.ShouldUpdate(); // Reset the throttle
+                    _updateThrottler.ShouldUpdate();
                     PerformUpdate();
                 }
             });
@@ -154,7 +134,6 @@ public partial class MainPage : ContentPage
 
     private void OnWaveTableChanged(object? sender, float[] waveTable)
     {
-        // Use same throttler for all updates
         ThrottledUpdate();
     }
 
@@ -194,7 +173,6 @@ public partial class MainPage : ContentPage
         {
             WaveformDrawable.DragTouch(point.X, point.Y, _canvasWidth, _canvasHeight);
             
-            // Throttle waveform canvas invalidation
             var now = DateTime.UtcNow;
             if ((now - _lastWaveformInvalidate).TotalMilliseconds >= ThrottleMs)
             {
@@ -232,5 +210,5 @@ public partial class MainPage : ContentPage
         WaveformView.Invalidate();
 
         _tonePlayer.StopTone();
-	}
+    }
 }

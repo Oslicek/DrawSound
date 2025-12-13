@@ -62,16 +62,13 @@
                    HorizontalOptions="Center"
                    Margin="0,8,0,4" />
 
-            <!-- Harmonic Sliders - Row 3 -->
+            <!-- Harmonic Sliders - Row 3 (single GraphicsView for all sliders) -->
             <Border Grid.Row="3"
                     StrokeShape="RoundRectangle 8"
                     Stroke="#333"
                     StrokeThickness="1"
-                    BackgroundColor="#0f0f1a"
-                    Padding="5">
-                <Grid x:Name="HarmonicsGrid" ColumnSpacing="2">
-                    <!-- 13 columns for sliders, dynamically created in code -->
-                </Grid>
+                    BackgroundColor="#0f0f1a">
+                <GraphicsView x:Name="HarmonicsView" />
             </Border>
 
             <!-- Result Preview Label - Row 4 -->
