@@ -34,9 +34,10 @@ public partial class MainPage : ContentPage
         // Create and configure the harmonics control
         _harmonicsControl = new HarmonicsView(HarmonicMixer.MaxHarmonics);
         _harmonicsControl.ValueChanged += OnHarmonicValueChanged;
+        _harmonicsControl.NeedsRedraw += (s, e) => HarmonicsView.Invalidate();
         HarmonicsView.Drawable = _harmonicsControl.Drawable;
         
-        // Forward touch events to harmonics control
+        // Forward touch events to harmonics control (no invalidation here - controlled by HarmonicsView)
         HarmonicsView.StartInteraction += (s, e) => 
         {
             var touch = e.Touches.FirstOrDefault();
@@ -44,7 +45,6 @@ public partial class MainPage : ContentPage
             {
                 _harmonicsControl.HandleStartTouch((float)touch.X, (float)touch.Y, 
                     (float)HarmonicsView.Width, (float)HarmonicsView.Height);
-                HarmonicsView.Invalidate();
             }
         };
         HarmonicsView.DragInteraction += (s, e) =>
@@ -54,13 +54,11 @@ public partial class MainPage : ContentPage
             {
                 _harmonicsControl.HandleDragTouch((float)touch.X, (float)touch.Y,
                     (float)HarmonicsView.Width, (float)HarmonicsView.Height);
-                HarmonicsView.Invalidate();
             }
         };
         HarmonicsView.EndInteraction += (s, e) =>
         {
             _harmonicsControl.HandleEndTouch();
-            HarmonicsView.Invalidate();
         };
 
         WaveformDrawable.WaveTableChanged += OnWaveTableChanged;

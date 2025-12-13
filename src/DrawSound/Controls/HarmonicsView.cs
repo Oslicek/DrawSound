@@ -15,6 +15,7 @@ public class HarmonicsView : IDrawable
     private const int ThrottleMs = 32;
 
     public event EventHandler<(int Index, float Value)>? ValueChanged;
+    public event EventHandler? NeedsRedraw;
 
     public int SliderCount { get; }
     public IDrawable Drawable => this;
@@ -70,6 +71,8 @@ public class HarmonicsView : IDrawable
     {
         if (_activeSlider >= 0)
         {
+            // Final update and redraw on release
+            NeedsRedraw?.Invoke(this, EventArgs.Empty);
             ValueChanged?.Invoke(this, (_activeSlider, _levels[_activeSlider]));
         }
         _activeSlider = -1;
@@ -102,6 +105,7 @@ public class HarmonicsView : IDrawable
             if (forceUpdate || (now - _lastUpdate).TotalMilliseconds >= ThrottleMs)
             {
                 _lastUpdate = now;
+                NeedsRedraw?.Invoke(this, EventArgs.Empty);
                 ValueChanged?.Invoke(this, (_activeSlider, newValue));
             }
         }
