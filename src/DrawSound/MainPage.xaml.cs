@@ -17,19 +17,20 @@ public partial class MainPage : ContentPage
     private readonly ITonePlayer _tonePlayer;
     private readonly float[] _harmonicLevels;
     private readonly VerticalSlider[] _harmonicSliders;
-    private readonly UpdateThrottler _sliderThrottler;
+    private readonly UpdateThrottler _updateThrottler;
     private bool _isPlaying;
     private bool _pendingUpdate;
     private float _canvasWidth;
     private float _canvasHeight;
+    private DateTime _lastWaveformInvalidate = DateTime.MinValue;
 
     public MainPage(ITonePlayer tonePlayer)
-    {
-        InitializeComponent();
+	{
+		InitializeComponent();
         _tonePlayer = tonePlayer;
         _harmonicLevels = HarmonicMixer.GetDefaultLevels();
         _harmonicSliders = new VerticalSlider[HarmonicMixer.MaxHarmonics];
-        _sliderThrottler = new UpdateThrottler(ThrottleMs);
+        _updateThrottler = new UpdateThrottler(ThrottleMs);
 
         CreateHarmonicSliders();
         WaveformDrawable.WaveTableChanged += OnWaveTableChanged;
@@ -109,20 +110,20 @@ public partial class MainPage : ContentPage
 
     private void ThrottledUpdate()
     {
-        if (_sliderThrottler.ShouldUpdate())
+        if (_updateThrottler.ShouldUpdate())
         {
             PerformUpdate();
         }
         else if (!_pendingUpdate)
         {
             _pendingUpdate = true;
-            int delay = _sliderThrottler.GetDeferredDelayMs();
+            int delay = _updateThrottler.GetDeferredDelayMs();
             Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(delay), () =>
             {
                 _pendingUpdate = false;
-                if (_sliderThrottler.NeedsDeferredUpdate)
+                if (_updateThrottler.NeedsDeferredUpdate)
                 {
-                    _sliderThrottler.ShouldUpdate(); // Reset the throttle
+                    _updateThrottler.ShouldUpdate(); // Reset the throttle
                     PerformUpdate();
                 }
             });
@@ -153,12 +154,8 @@ public partial class MainPage : ContentPage
 
     private void OnWaveTableChanged(object? sender, float[] waveTable)
     {
-        UpdatePreview();
-        if (_isPlaying)
-        {
-            UpdatePlayback();
-        }
-        WaveformView.Invalidate();
+        // Use same throttler for all updates
+        ThrottledUpdate();
     }
 
     private void OnGenerateSineClicked(object? sender, EventArgs e)
@@ -196,7 +193,14 @@ public partial class MainPage : ContentPage
         if (point != default)
         {
             WaveformDrawable.DragTouch(point.X, point.Y, _canvasWidth, _canvasHeight);
-            WaveformView.Invalidate();
+            
+            // Throttle waveform canvas invalidation
+            var now = DateTime.UtcNow;
+            if ((now - _lastWaveformInvalidate).TotalMilliseconds >= ThrottleMs)
+            {
+                _lastWaveformInvalidate = now;
+                WaveformView.Invalidate();
+            }
         }
     }
 
@@ -228,5 +232,5 @@ public partial class MainPage : ContentPage
         WaveformView.Invalidate();
 
         _tonePlayer.StopTone();
-    }
+	}
 }

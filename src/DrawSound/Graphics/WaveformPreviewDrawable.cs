@@ -2,29 +2,29 @@ namespace DrawSound.Graphics;
 
 /// <summary>
 /// Read-only waveform preview showing the mixed result
+/// Optimized for performance
 /// </summary>
 public class WaveformPreviewDrawable : IDrawable
 {
     private float[] _waveTable = Array.Empty<float>();
-    private readonly object _lock = new();
 
     public Color WaveColor { get; set; } = Colors.Lime;
     public Color BackgroundColor { get; set; } = Color.FromArgb("#0a0a15");
     public Color GridColor { get; set; } = Color.FromArgb("#1a1a2a");
-    public float StrokeWidth { get; set; } = 2f;
 
     public void SetWaveTable(float[] waveTable)
     {
-        lock (_lock)
-        {
-            _waveTable = (float[])waveTable.Clone();
-        }
+        _waveTable = waveTable; // Direct reference, no clone needed
     }
 
     public void Draw(ICanvas canvas, RectF dirtyRect)
     {
+        // Background
         canvas.FillColor = BackgroundColor;
         canvas.FillRectangle(dirtyRect);
+
+        var samples = _waveTable;
+        if (samples.Length < 2) return;
 
         // Center line
         canvas.StrokeColor = GridColor;
@@ -32,45 +32,27 @@ public class WaveformPreviewDrawable : IDrawable
         float centerY = dirtyRect.Height / 2;
         canvas.DrawLine(0, centerY, dirtyRect.Width, centerY);
 
-        float[] samples;
-        lock (_lock)
-        {
-            samples = (float[])_waveTable.Clone();
-        }
-
-        if (samples.Length < 2) return;
-
-        // Draw 2 cycles of the waveform
-        DrawWaveform(canvas, dirtyRect, samples, 2);
-    }
-
-    private void DrawWaveform(ICanvas canvas, RectF rect, float[] samples, int cycles)
-    {
+        // Draw waveform using simple lines (faster than path)
         canvas.StrokeColor = WaveColor;
-        canvas.StrokeSize = StrokeWidth;
-        canvas.StrokeLineCap = LineCap.Round;
-        canvas.StrokeLineJoin = LineJoin.Round;
+        canvas.StrokeSize = 2;
 
-        float centerY = rect.Height / 2;
-        float amplitude = rect.Height * 0.4f;
-        int totalSamples = samples.Length * cycles;
-        float xStep = rect.Width / totalSamples;
+        float amplitude = dirtyRect.Height * 0.4f;
+        int cycles = 2;
+        int totalPoints = samples.Length * cycles;
+        float xStep = dirtyRect.Width / totalPoints;
 
-        var path = new PathF();
+        float prevX = 0;
+        float prevY = centerY - (samples[0] * amplitude * 2);
 
-        for (int i = 0; i < totalSamples; i++)
+        for (int i = 1; i < totalPoints; i++)
         {
             int sampleIndex = i % samples.Length;
             float x = i * xStep;
             float y = centerY - (samples[sampleIndex] * amplitude * 2);
 
-            if (i == 0)
-                path.MoveTo(x, y);
-            else
-                path.LineTo(x, y);
+            canvas.DrawLine(prevX, prevY, x, y);
+            prevX = x;
+            prevY = y;
         }
-
-        canvas.DrawPath(path);
     }
 }
-

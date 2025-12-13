@@ -3,10 +3,14 @@ namespace DrawSound.Controls;
 /// <summary>
 /// Custom vertical slider that works properly on Android
 /// Uses StartInteraction/DragInteraction events for touch handling
+/// Optimized for performance with throttled updates
 /// </summary>
 public class VerticalSlider : GraphicsView
 {
     private float _value;
+    private float _displayValue; // Separate display value for smooth visuals
+    private DateTime _lastInvalidate = DateTime.MinValue;
+    private const int InvalidateThrottleMs = 16; // ~60 FPS max
 
     public event EventHandler<float>? ValueChanged;
 
@@ -16,6 +20,7 @@ public class VerticalSlider : GraphicsView
         set
         {
             _value = Math.Clamp(value, 0f, 1f);
+            _displayValue = _value;
             Invalidate();
         }
     }
@@ -38,7 +43,7 @@ public class VerticalSlider : GraphicsView
         var touch = e.Touches.FirstOrDefault();
         if (touch != default)
         {
-            UpdateValueFromY((float)touch.Y);
+            UpdateValueFromY((float)touch.Y, forceRedraw: true);
         }
     }
 
@@ -47,11 +52,11 @@ public class VerticalSlider : GraphicsView
         var touch = e.Touches.FirstOrDefault();
         if (touch != default)
         {
-            UpdateValueFromY((float)touch.Y);
+            UpdateValueFromY((float)touch.Y, forceRedraw: false);
         }
     }
 
-    private void UpdateValueFromY(float y)
+    private void UpdateValueFromY(float y, bool forceRedraw)
     {
         float height = (float)Height;
         if (height <= 0) height = 100; // fallback
@@ -61,10 +66,20 @@ public class VerticalSlider : GraphicsView
         float normalizedY = (y - thumbRadius) / usableHeight;
         float newValue = 1f - Math.Clamp(normalizedY, 0f, 1f);
         
-        if (Math.Abs(newValue - _value) > 0.001f)
+        // Only update if value changed enough (reduces noise)
+        if (Math.Abs(newValue - _value) > 0.005f)
         {
             _value = newValue;
-            Invalidate();
+            _displayValue = newValue;
+            
+            // Throttle visual updates
+            var now = DateTime.UtcNow;
+            if (forceRedraw || (now - _lastInvalidate).TotalMilliseconds >= InvalidateThrottleMs)
+            {
+                _lastInvalidate = now;
+                Invalidate();
+            }
+            
             ValueChanged?.Invoke(this, _value);
         }
     }
@@ -82,37 +97,31 @@ public class VerticalSlider : GraphicsView
         {
             float width = dirtyRect.Width;
             float height = dirtyRect.Height;
-            float trackWidth = 8;
-            float thumbRadius = 12;
+            float trackWidth = 6;
+            float thumbRadius = 10;
             float trackX = (width - trackWidth) / 2;
             float usableHeight = height - thumbRadius * 2;
-            float thumbY = thumbRadius + (1 - _slider.Value) * usableHeight;
+            float thumbY = thumbRadius + (1 - _slider._displayValue) * usableHeight;
 
-            // Draw track background
+            // Draw track background - simple rectangle
             canvas.FillColor = _slider.TrackColor;
-            canvas.FillRoundedRectangle(trackX, thumbRadius, trackWidth, usableHeight, 4);
+            canvas.FillRectangle(trackX, thumbRadius, trackWidth, usableHeight);
 
             // Draw filled portion (from bottom up)
-            if (_slider.Value > 0.01f)
+            if (_slider._displayValue > 0.01f)
             {
                 canvas.FillColor = _slider.FillColor;
-                float fillHeight = _slider.Value * usableHeight;
-                float fillY = height - thumbRadius - fillHeight;
-                canvas.FillRoundedRectangle(trackX, fillY, trackWidth, fillHeight, 4);
+                float fillHeight = _slider._displayValue * usableHeight;
+                canvas.FillRectangle(trackX, height - thumbRadius - fillHeight, trackWidth, fillHeight);
             }
 
-            // Draw thumb shadow
-            canvas.FillColor = Colors.Black.WithAlpha(0.3f);
-            canvas.FillCircle(width / 2 + 1, thumbY + 2, thumbRadius);
-
-            // Draw thumb
-            canvas.FillColor = _slider.ThumbColor;
+            // Draw thumb - simple circle, no shadow
+            canvas.FillColor = _slider.FillColor;
             canvas.FillCircle(width / 2, thumbY, thumbRadius);
             
-            // Thumb border
-            canvas.StrokeColor = _slider.FillColor;
-            canvas.StrokeSize = 3;
-            canvas.DrawCircle(width / 2, thumbY, thumbRadius - 1);
+            // White center dot
+            canvas.FillColor = _slider.ThumbColor;
+            canvas.FillCircle(width / 2, thumbY, 4);
         }
     }
 }
