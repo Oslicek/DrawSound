@@ -7,7 +7,7 @@
     Title="DrawSound">
 
     <ShellContent
-        Title="Home"
+        Title="Home 5"
         ContentTemplate="{DataTemplate local:MainPage}"
         Route="MainPage" />
 

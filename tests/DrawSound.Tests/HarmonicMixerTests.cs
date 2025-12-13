@@ -5,20 +5,20 @@ namespace DrawSound.Tests;
 public class HarmonicMixerTests
 {
     [Fact]
-    public void MaxHarmonics_Is12()
+    public void MaxHarmonics_Is6()
     {
         // Assert
-        Assert.Equal(12, HarmonicMixer.MaxHarmonics);
+        Assert.Equal(6, HarmonicMixer.MaxHarmonics);
     }
 
     [Fact]
-    public void GetDefaultLevels_Returns12Elements()
+    public void GetDefaultLevels_Returns6Elements()
     {
         // Act
         var levels = HarmonicMixer.GetDefaultLevels();
 
         // Assert
-        Assert.Equal(12, levels.Length);
+        Assert.Equal(6, levels.Length);
     }
 
     [Fact]
@@ -211,10 +211,10 @@ public class HarmonicMixerTests
     }
 
     [Theory]
+    [InlineData(2)]   // 3rd harmonic (3f)
     [InlineData(3)]   // 4th harmonic (4f)
-    [InlineData(5)]   // 6th harmonic (6f)
-    [InlineData(7)]   // 8th harmonic (8f)
-    [InlineData(11)]  // 12th harmonic (12f) - max index is 11 for 12 harmonics
+    [InlineData(4)]   // 5th harmonic (5f)
+    [InlineData(5)]   // 6th harmonic (6f) - max index is 5 for 6 harmonics
     public void MixHarmonics_HigherHarmonics_IncreaseFrequency(int harmonicIndex)
     {
         // Arrange

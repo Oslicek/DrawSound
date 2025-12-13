@@ -5,7 +5,7 @@ namespace DrawSound.Core.Audio;
 /// </summary>
 public static class HarmonicMixer
 {
-    public const int MaxHarmonics = 12; // Base (f) + 11 overtones (2f to 12f)
+    public const int MaxHarmonics = 6; // Base (f) + 5 overtones (2f to 6f)
 
     /// <summary>
     /// Mix the base waveform with overtones

@@ -31,20 +31,20 @@ public partial class MainPage : ContentPage
         _harmonicLevels = HarmonicMixer.GetDefaultLevels();
         _updateThrottler = new UpdateThrottler(ThrottleMs);
 
-        // Create and configure the harmonics control
-        _harmonicsControl = new HarmonicsView(HarmonicMixer.MaxHarmonics);
+        // Harmonics sliders - connected to audio processing
+        _harmonicsControl = new HarmonicsView();
         _harmonicsControl.ValueChanged += OnHarmonicValueChanged;
-        _harmonicsControl.NeedsRedraw += (s, e) => HarmonicsView.Invalidate();
         HarmonicsView.Drawable = _harmonicsControl.Drawable;
         
-        // Forward touch events to harmonics control (no invalidation here - controlled by HarmonicsView)
+        // Touch forwarding
         HarmonicsView.StartInteraction += (s, e) => 
         {
             var touch = e.Touches.FirstOrDefault();
             if (touch != default)
             {
-                _harmonicsControl.HandleStartTouch((float)touch.X, (float)touch.Y, 
-                    (float)HarmonicsView.Width, (float)HarmonicsView.Height);
+                _harmonicsControl.OnTouch((float)touch.X, (float)touch.Y, 
+                    (float)HarmonicsView.Width, (float)HarmonicsView.Height, isStart: true);
+                HarmonicsView.Invalidate();
             }
         };
         HarmonicsView.DragInteraction += (s, e) =>
@@ -52,13 +52,15 @@ public partial class MainPage : ContentPage
             var touch = e.Touches.FirstOrDefault();
             if (touch != default)
             {
-                _harmonicsControl.HandleDragTouch((float)touch.X, (float)touch.Y,
-                    (float)HarmonicsView.Width, (float)HarmonicsView.Height);
+                _harmonicsControl.OnTouch((float)touch.X, (float)touch.Y,
+                    (float)HarmonicsView.Width, (float)HarmonicsView.Height, isStart: false);
+                HarmonicsView.Invalidate();
             }
         };
         HarmonicsView.EndInteraction += (s, e) =>
         {
-            _harmonicsControl.HandleEndTouch();
+            _harmonicsControl.OnTouchEnd();
+            HarmonicsView.Invalidate();
         };
 
         WaveformDrawable.WaveTableChanged += OnWaveTableChanged;
