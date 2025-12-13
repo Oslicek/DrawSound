@@ -5,20 +5,20 @@ namespace DrawSound.Tests;
 public class HarmonicMixerTests
 {
     [Fact]
-    public void MaxHarmonics_Is13()
+    public void MaxHarmonics_Is12()
     {
         // Assert
-        Assert.Equal(13, HarmonicMixer.MaxHarmonics);
+        Assert.Equal(12, HarmonicMixer.MaxHarmonics);
     }
 
     [Fact]
-    public void GetDefaultLevels_Returns13Elements()
+    public void GetDefaultLevels_Returns12Elements()
     {
         // Act
         var levels = HarmonicMixer.GetDefaultLevels();
 
         // Assert
-        Assert.Equal(13, levels.Length);
+        Assert.Equal(12, levels.Length);
     }
 
     [Fact]

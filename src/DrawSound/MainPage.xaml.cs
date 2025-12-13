@@ -1,4 +1,5 @@
-﻿using DrawSound.Core.Audio;
+﻿using DrawSound.Controls;
+using DrawSound.Core.Audio;
 using DrawSound.Graphics;
 using DrawSound.Services;
 
@@ -12,7 +13,7 @@ public partial class MainPage : ContentPage
     
     private readonly ITonePlayer _tonePlayer;
     private readonly float[] _harmonicLevels;
-    private readonly Slider[] _harmonicSliders;
+    private readonly VerticalSlider[] _harmonicSliders;
     private bool _isPlaying;
     private float _canvasWidth;
     private float _canvasHeight;
@@ -22,7 +23,7 @@ public partial class MainPage : ContentPage
         InitializeComponent();
         _tonePlayer = tonePlayer;
         _harmonicLevels = HarmonicMixer.GetDefaultLevels();
-        _harmonicSliders = new Slider[HarmonicMixer.MaxHarmonics];
+        _harmonicSliders = new VerticalSlider[HarmonicMixer.MaxHarmonics];
 
         CreateHarmonicSliders();
         WaveformDrawable.WaveTableChanged += OnWaveTableChanged;
@@ -41,36 +42,28 @@ public partial class MainPage : ContentPage
         HarmonicsGrid.RowDefinitions.Add(new RowDefinition(GridLength.Star));
         HarmonicsGrid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
 
-        string[] labels = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13" };
+        // Labels: f, 2f, 3f, ... 12f
+        string[] labels = { "f", "2f", "3f", "4f", "5f", "6f", "7f", "8f", "9f", "10f", "11f", "12f" };
 
         for (int i = 0; i < HarmonicMixer.MaxHarmonics; i++)
         {
             int index = i; // Capture for closure
 
-            // Create vertical slider container
-            var sliderContainer = new Grid
+            var slider = new VerticalSlider
             {
-                RowDefinitions = { new RowDefinition(GridLength.Star) }
-            };
-
-            var slider = new Slider
-            {
-                Minimum = 0,
-                Maximum = 1,
                 Value = _harmonicLevels[i],
-                Rotation = 270,
-                WidthRequest = 120,
-                HeightRequest = 30,
-                VerticalOptions = LayoutOptions.Center,
+                WidthRequest = 28,
+                HeightRequest = 110,
                 HorizontalOptions = LayoutOptions.Center,
-                ThumbColor = i == 0 ? Colors.Cyan : Colors.Orange,
-                MinimumTrackColor = i == 0 ? Colors.Cyan : Colors.Orange,
-                MaximumTrackColor = Color.FromArgb("#333")
+                VerticalOptions = LayoutOptions.Fill,
+                FillColor = i == 0 ? Colors.Cyan : Colors.Orange,
+                ThumbColor = Colors.White,
+                TrackColor = Color.FromArgb("#333")
             };
 
-            slider.ValueChanged += (s, e) =>
+            slider.ValueChanged += (s, value) =>
             {
-                _harmonicLevels[index] = (float)e.NewValue;
+                _harmonicLevels[index] = value;
                 UpdatePreview();
                 if (_isPlaying)
                 {
@@ -79,18 +72,17 @@ public partial class MainPage : ContentPage
             };
 
             _harmonicSliders[i] = slider;
-            sliderContainer.Add(slider);
             
-            Grid.SetRow(sliderContainer, 0);
-            Grid.SetColumn(sliderContainer, i);
-            HarmonicsGrid.Add(sliderContainer);
+            Grid.SetRow(slider, 0);
+            Grid.SetColumn(slider, i);
+            HarmonicsGrid.Add(slider);
 
             // Label
             var label = new Label
             {
                 Text = labels[i],
                 TextColor = i == 0 ? Colors.Cyan : Colors.Gray,
-                FontSize = 10,
+                FontSize = 9,
                 HorizontalOptions = LayoutOptions.Center,
                 HorizontalTextAlignment = TextAlignment.Center
             };
