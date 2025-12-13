@@ -1,95 +1,87 @@
 # Project Context
 
-> **Last Updated:** 2025-12-12
+> **Last Updated:** 2025-12-13
 
 ## Overview
 
-**DrawSound** is a .NET MAUI application targeting Android as the primary platform.
+**DrawSound** is a .NET MAUI music synthesizer application targeting Android as the primary platform.
 
 ## Technology Stack
 
 | Component | Version/Details |
 |-----------|-----------------|
-| Framework | .NET 10 Preview (10.0.100-preview.5) |
-| UI Framework | .NET MAUI |
+| Framework | .NET 10 LTS (10.0.101) |
+| UI Framework | .NET MAUI 10.0.1 |
 | Language | C# |
-| Primary Platform | Android |
-| IDE | Cursor / Visual Studio |
+| Primary Platform | Android 6.0+ (API 23+) |
+| Audio | 44.1kHz, 32-bit float, wavetable synthesis |
 
 ## Project Structure
 
 ```
 DrawSound/
 ├── src/
-│   └── DrawSound/              # Main MAUI application
-│       ├── Platforms/          # Platform-specific code
-│       │   └── Android/        # Android-specific (MainActivity, etc.)
-│       ├── Resources/          # App resources (images, fonts, styles)
-│       ├── App.xaml            # Application definition
-│       ├── AppShell.xaml       # Shell navigation
-│       ├── MainPage.xaml       # Main page (Hello World)
-│       ├── MauiProgram.cs      # App builder & DI setup
-│       └── DrawSound.csproj    # Project file
+│   └── DrawSound/
+│       ├── Platforms/
+│       │   └── Android/
+│       │       └── Services/
+│       │           └── TonePlayer.cs    # Wavetable audio player
+│       ├── Services/
+│       │   └── ITonePlayer.cs           # Audio interface
+│       ├── Resources/
+│       ├── App.xaml
+│       ├── AppShell.xaml
+│       ├── MainPage.xaml                # Synthesizer UI
+│       ├── MauiProgram.cs
+│       └── DrawSound.csproj
 ├── .gitignore
-├── global.json                 # Pins .NET SDK to 10.0 preview
-├── PROJECT_RULES.md            # Development guidelines (static)
-├── PROJECT_CONTEXT.md          # This file (updated each increment)
+├── global.json
+├── PROJECT_RULES.md
+├── PROJECT_CONTEXT.md
 └── README.md
 ```
 
-## Environment Setup
-
-- **Android SDK:** Located at `%LOCALAPPDATA%\Android\Sdk`
-- **ANDROID_HOME:** Environment variable configured
-- **Available Emulators:** Pixel_9_Pro, Medium_Phone_API_36.0
-- **MAUI Workloads:** Installed for .NET 10
-
 ## Current State
 
-**Phase:** Hello World implementation complete
+**Phase:** Single-tone synthesizer with wavetable synthesis
 
 **Completed:**
-- [x] Git repository initialized
-- [x] GitHub remote configured (https://github.com/Oslicek/DrawSound)
-- [x] .NET 10 SDK pinned via global.json
-- [x] MAUI workloads installed
-- [x] Android SDK configured
-- [x] Project rules established
-- [x] MAUI project scaffold created
-- [x] Hello World page implemented
-- [x] Android build verified
+- [x] Git repository with GitHub remote
+- [x] .NET 10 LTS environment configured
+- [x] MAUI project scaffold
+- [x] Basic synthesizer UI (single C4 button)
+- [x] Audio service with wavetable approach (44.1kHz, 32-bit float)
 
-**Next Steps:**
-- [ ] Define application purpose and features
-- [ ] Design application architecture
-- [ ] Implement core functionality
+**Current Features:**
+- Single button plays middle C (261.63 Hz)
+- Press to play, release to stop
+- Wavetable-based tone generation
 
 ## Architecture
 
-**Pattern:** MVVM (Model-View-ViewModel) - to be implemented
+**Pattern:** Service-based with Dependency Injection
 
-**Current Pages:**
-- `MainPage` - Displays "Hello World!" centered on screen
+**Audio Engine:**
+- Sample Rate: 44,100 Hz
+- Bit Depth: 32-bit float (PcmFloat)
+- Synthesis: Wavetable (single cycle buffer, looped)
 
 ## Key Components
 
 | Component | Purpose |
 |-----------|---------|
-| `MainPage.xaml` | Single page showing Hello World |
-| `App.xaml` | Application resources and startup |
-| `AppShell.xaml` | Shell navigation container |
-| `MauiProgram.cs` | Application builder and DI configuration |
+| `ITonePlayer` | Audio playback interface |
+| `TonePlayer` | Android AudioTrack implementation |
+| `MainPage` | Synthesizer UI with tone button |
 
-## Dependencies
+## Test Devices
 
-Standard .NET MAUI dependencies (from template):
-- Microsoft.Maui.Controls
-- Microsoft.Maui.Controls.Compatibility
-- Microsoft.Extensions.Logging.Debug
+- Samsung Galaxy S24 Ultra (SM-S928B)
+- Samsung Galaxy Tab S9 (SM-X710)
+- Android Emulator (Pixel 9 Pro)
 
 ## Notes
 
-- Build target: `net10.0-android`
-- Build output: `bin/Debug/net10.0-android/DrawSound.dll`
-- GitHub username: Oslicek
-- Git username: NetDonkey
+- GitHub: https://github.com/Oslicek/DrawSound
+- WiFi debugging enabled on physical devices
+
