@@ -59,26 +59,8 @@ public class PianoKeyboard : IDrawable
 
     public void OnTouchesEnd(IEnumerable<(long Id, float X, float Y)> touches)
     {
-        // On end we remove keys that correspond to ended touches; if empty, clear all
-        if (!touches.Any())
-        {
-            UpdateActiveKeys(new HashSet<int>());
-            return;
-        }
-
-        var endedKeys = new HashSet<int>();
-        foreach (var touch in touches)
-        {
-            var key = GetKeyAtPosition(touch.X, touch.Y);
-            if (key >= 0)
-            {
-                endedKeys.Add(key);
-            }
-        }
-
-        var remaining = new HashSet<int>(_activeKeys);
-        remaining.ExceptWith(endedKeys);
-        UpdateActiveKeys(remaining);
+        // Always clear all keys on interaction end to avoid stuck notes
+        UpdateActiveKeys(new HashSet<int>());
     }
 
     private int GetKeyAtPosition(float x, float y)

@@ -11,18 +11,21 @@ public class VoiceMixer
     {
         public double Frequency { get; set; }
         public float[] WaveTable { get; set; } = Array.Empty<float>();
-        public int Position { get; set; }
+        public float Phase { get; set; }
+        public float PhaseIncrement { get; set; }
         public bool Releasing { get; set; }
         public int ReleaseSamplesRemaining { get; set; }
     }
 
+    private readonly int _sampleRate;
     private readonly int _releaseSamples;
     private readonly int _maxVoices;
     private readonly List<Voice> _voices = new();
     private readonly object _lock = new();
 
-    public VoiceMixer(int releaseSamples, int maxVoices)
+    public VoiceMixer(int sampleRate, int releaseSamples, int maxVoices)
     {
+        _sampleRate = sampleRate;
         _releaseSamples = Math.Max(1, releaseSamples);
         _maxVoices = Math.Max(1, maxVoices);
     }
@@ -49,7 +52,8 @@ public class VoiceMixer
             {
                 Frequency = frequency,
                 WaveTable = cloned,
-                Position = 0,
+                Phase = 0f,
+                PhaseIncrement = CalcPhaseIncrement(frequency, cloned.Length),
                 Releasing = false,
                 ReleaseSamplesRemaining = _releaseSamples
             });
@@ -66,10 +70,9 @@ public class VoiceMixer
                 if (Math.Abs(voice.Frequency - frequency) < 0.0001)
                 {
                     voice.WaveTable = cloned;
-                    if (voice.Position >= cloned.Length)
-                    {
-                        voice.Position %= cloned.Length;
-                    }
+                    voice.PhaseIncrement = CalcPhaseIncrement(frequency, cloned.Length);
+                    if (voice.Phase >= cloned.Length)
+                        voice.Phase %= cloned.Length;
                 }
             }
         }
@@ -101,6 +104,8 @@ public class VoiceMixer
         if (snapshot.Length == 0)
             return;
 
+        float mixScale = 0.8f / snapshot.Length; // headroom and averaging
+
         for (int i = 0; i < buffer.Length; i++)
         {
             float sample = 0f;
@@ -111,12 +116,22 @@ public class VoiceMixer
                 int len = table.Length;
                 if (len == 0) continue;
 
+                int idx0 = (int)voice.Phase;
+                int idx1 = (idx0 + 1) % len;
+                float frac = voice.Phase - idx0;
+
+                float v0 = table[idx0];
+                float v1 = table[idx1];
+                float waveSample = v0 + (v1 - v0) * frac;
+
                 float gain = voice.Releasing
                     ? Math.Max(0f, voice.ReleaseSamplesRemaining / (float)_releaseSamples)
                     : 1f;
 
-                sample += table[voice.Position % len] * gain;
-                voice.Position = (voice.Position + 1) % len;
+                sample += waveSample * gain;
+                voice.Phase += voice.PhaseIncrement;
+                if (voice.Phase >= len)
+                    voice.Phase -= len;
 
                 if (voice.Releasing && voice.ReleaseSamplesRemaining > 0)
                 {
@@ -124,7 +139,7 @@ public class VoiceMixer
                 }
             }
 
-            buffer[i] = Math.Clamp(sample, -1f, 1f);
+            buffer[i] = Math.Clamp(sample * mixScale, -1f, 1f);
         }
 
         lock (_lock)
@@ -138,6 +153,11 @@ public class VoiceMixer
                 }
             }
         }
+    }
+
+    private float CalcPhaseIncrement(double frequency, int tableLength)
+    {
+        return (float)(tableLength * frequency / _sampleRate);
     }
 }
 

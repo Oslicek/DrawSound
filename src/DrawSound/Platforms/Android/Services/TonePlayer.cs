@@ -22,14 +22,13 @@ public class TonePlayer : ITonePlayer, IDisposable
     private const int SampleRate = 44100;
     private readonly WaveTableGenerator _waveTableGenerator;
     private readonly VoiceMixer _mixer;
-    private readonly object _lock = new();
 
     public TonePlayer(IOptions<AudioSettings> audioOptions)
     {
         _waveTableGenerator = new WaveTableGenerator(SampleRate);
         var releaseMs = audioOptions.Value.ReleaseMs;
         var releaseSamples = Math.Max(1, (int)Math.Round(SampleRate * (releaseMs / 1000d)));
-        _mixer = new VoiceMixer(releaseSamples, audioOptions.Value.MaxPolyphony);
+        _mixer = new VoiceMixer(SampleRate, releaseSamples, audioOptions.Value.MaxPolyphony);
     }
 
     public void StartTone(double frequency)
