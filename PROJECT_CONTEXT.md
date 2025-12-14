@@ -103,9 +103,9 @@ DrawSound/
 - [x] Harmonic mixer and preview
 - [x] Bezier curve editor with touch support
 - [x] 6 harmonic sliders (single GraphicsView) with throttled redraws
-- [x] Piano keyboard (C3–C5)
-- [x] Short release envelope to remove key-up clicks
-- [x] 6-voice polyphony via `VoiceMixer` + AudioTrack
+- [x] Piano keyboard (C3–C5) with stable multi-touch
+- [x] Short attack/release envelopes to avoid clicks on note on/off
+- [x] 6-voice polyphony via `VoiceMixer` + AudioTrack with headroom scaling
 
 **Current Features:**
 - Playable 25-key keyboard (C3–C5), multi-touch mapped to per-voice playback
