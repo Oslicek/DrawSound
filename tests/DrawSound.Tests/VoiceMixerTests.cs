@@ -26,7 +26,7 @@ public class VoiceMixerTests
         mixer.Mix(buffer);
 
         Assert.All(buffer, v => Assert.InRange(v, -1f, 1f));
-        Assert.Contains(buffer, v => v > 0f); // attack ramp but non-zero energy
+        Assert.Contains(buffer, v => Math.Abs(v) > 0f); // attack ramp but non-zero energy
     }
 
     [Fact]

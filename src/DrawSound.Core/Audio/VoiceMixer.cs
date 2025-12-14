@@ -18,7 +18,7 @@ public class VoiceMixer
         public int AttackSamplesRemaining { get; set; }
     }
 
-    private const int AttackLengthSamples = 64;
+    private const int AttackLengthSamples = 256; // ~6ms at 44.1kHz
     private readonly int _sampleRate;
     private readonly int _releaseSamples;
     private readonly int _maxVoices;
@@ -66,7 +66,7 @@ public class VoiceMixer
             {
                 Frequency = frequency,
                 WaveTable = cloned,
-                Phase = 0f,
+                Phase = FindBestStartPhase(cloned),
                 PhaseIncrement = CalcPhaseIncrement(frequency, cloned.Length),
                 Releasing = false,
                 ReleaseSamplesRemaining = _releaseSamples,
@@ -181,6 +181,22 @@ public class VoiceMixer
     private float CalcPhaseIncrement(double frequency, int tableLength)
     {
         return (float)(tableLength * frequency / _sampleRate);
+    }
+
+    private float FindBestStartPhase(float[] table)
+    {
+        int bestIndex = 0;
+        float bestVal = MathF.Abs(table[0]);
+        for (int i = 1; i < table.Length; i++)
+        {
+            float v = MathF.Abs(table[i]);
+            if (v < bestVal)
+            {
+                bestVal = v;
+                bestIndex = i;
+            }
+        }
+        return bestIndex;
     }
 }
 
