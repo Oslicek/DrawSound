@@ -95,19 +95,19 @@ public partial class MainPage : ContentPage
     {
         view.StartInteraction += (s, e) =>
         {
-            var touches = e.Touches.Select(t => (t.Id, (float)t.X, (float)t.Y)).ToList();
+            var touches = e.Touches.Select((t, i) => ((long)i, (float)t.X, (float)t.Y)).ToList();
             _pianoControl.OnTouches(touches, (float)view.Width, (float)view.Height, isStart: true);
             view.Invalidate();
         };
         view.DragInteraction += (s, e) =>
         {
-            var touches = e.Touches.Select(t => (t.Id, (float)t.X, (float)t.Y)).ToList();
+            var touches = e.Touches.Select((t, i) => ((long)i, (float)t.X, (float)t.Y)).ToList();
             _pianoControl.OnTouches(touches, (float)view.Width, (float)view.Height, isStart: false);
             view.Invalidate();
         };
         view.EndInteraction += (s, e) =>
         {
-            var touches = e.Touches.Select(t => (t.Id, (float)t.X, (float)t.Y)).ToList();
+            var touches = e.Touches.Select((t, i) => ((long)i, (float)t.X, (float)t.Y)).ToList();
             _pianoControl.OnTouchesEnd(touches);
             view.Invalidate();
         };
