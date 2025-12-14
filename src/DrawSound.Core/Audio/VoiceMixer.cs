@@ -119,8 +119,6 @@ public class VoiceMixer
         if (snapshot.Length == 0)
             return;
 
-        float mixScale = 0.7f / Math.Max(1, snapshot.Length); // headroom and averaging
-
         for (int i = 0; i < buffer.Length; i++)
         {
             float sample = 0f;
@@ -161,7 +159,10 @@ public class VoiceMixer
                 }
             }
 
-            buffer[i] = Math.Clamp(sample * mixScale, -1f, 1f);
+            // Soft clip to avoid hard gain jumps/clipping when voices start/stop
+            float driven = sample;
+            float clipped = driven / (1f + MathF.Abs(driven));
+            buffer[i] = clipped;
         }
 
         lock (_lock)
