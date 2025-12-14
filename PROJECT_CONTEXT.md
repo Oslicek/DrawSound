@@ -108,7 +108,7 @@ DrawSound/
 - [x] 6-voice polyphony via `VoiceMixer` + AudioTrack
 
 **Current Features:**
-- Playable 25-key keyboard (C3–C5), press/release mapped to per-voice playback
+- Playable 25-key keyboard (C3–C5), multi-touch mapped to per-voice playback
 - Editable Bezier waveform; sine/reset/delete node buttons
 - Harmonic sliders (6) controlling overtones; mixed preview view
 - Single-cycle preview rendering; throttled UI/audio updates
