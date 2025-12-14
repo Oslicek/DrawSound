@@ -95,27 +95,17 @@ public partial class MainPage : ContentPage
     {
         view.StartInteraction += (s, e) =>
         {
-            var touch = e.Touches.FirstOrDefault();
-            if (touch != default)
-            {
-                _pianoControl.OnTouch((float)touch.X, (float)touch.Y,
-                    (float)view.Width, (float)view.Height, isStart: true);
-                view.Invalidate();
-            }
+            _pianoControl.OnTouches(e.Touches, (float)view.Width, (float)view.Height, isStart: true);
+            view.Invalidate();
         };
         view.DragInteraction += (s, e) =>
         {
-            var touch = e.Touches.FirstOrDefault();
-            if (touch != default)
-            {
-                _pianoControl.OnTouch((float)touch.X, (float)touch.Y,
-                    (float)view.Width, (float)view.Height, isStart: false);
-                view.Invalidate();
-            }
+            _pianoControl.OnTouches(e.Touches, (float)view.Width, (float)view.Height, isStart: false);
+            view.Invalidate();
         };
         view.EndInteraction += (s, e) =>
         {
-            _pianoControl.OnTouchEnd();
+            _pianoControl.OnTouchesEnd(e.Touches);
             view.Invalidate();
         };
     }

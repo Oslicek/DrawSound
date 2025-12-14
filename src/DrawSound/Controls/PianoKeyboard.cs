@@ -10,7 +10,9 @@ public class PianoKeyboard : IDrawable
     private static readonly bool[] IsBlackKey = new bool[25];
     private static readonly string[] NoteNames = new string[25];
     
-    private int _activeKey = -1;
+    private readonly HashSet<int> _activeKeys = new();
+    private readonly Dictionary<long, int> _touchToKey = new();
+    private readonly Dictionary<int, int> _keyRefCounts = new();
     private float _viewWidth;
     private float _viewHeight;
     
@@ -39,29 +41,23 @@ public class PianoKeyboard : IDrawable
         }
     }
 
-    public void OnTouch(float x, float y, float width, float height, bool isStart)
+    public void OnTouches(IEnumerable<TouchPoint> touches, float width, float height, bool isStart)
     {
         _viewWidth = width;
         _viewHeight = height;
-        
-        int key = GetKeyAtPosition(x, y);
-        if (key != _activeKey)
+
+        foreach (var touch in touches)
         {
-            _activeKey = key;
-            if (key >= 0)
-            {
-                KeyPressed?.Invoke(this, Frequencies[key]);
-            }
+            var key = GetKeyAtPosition((float)touch.X, (float)touch.Y);
+            HandleTouch(touch.Id, key);
         }
     }
 
-    public void OnTouchEnd()
+    public void OnTouchesEnd(IEnumerable<TouchPoint> touches)
     {
-        if (_activeKey >= 0)
+        foreach (var touch in touches)
         {
-            var freq = Frequencies[_activeKey];
-            _activeKey = -1;
-            KeyReleased?.Invoke(this, freq);
+            HandleTouchEnd(touch.Id);
         }
     }
 
@@ -128,6 +124,66 @@ public class PianoKeyboard : IDrawable
         return 0;
     }
 
+    private void HandleTouch(long touchId, int key)
+    {
+        if (_touchToKey.TryGetValue(touchId, out var prevKey))
+        {
+            if (prevKey == key)
+                return;
+
+            // release previous mapping
+            ReleaseKey(prevKey);
+            _touchToKey.Remove(touchId);
+        }
+
+        if (key >= 0)
+        {
+            _touchToKey[touchId] = key;
+            PressKey(key);
+        }
+    }
+
+    private void HandleTouchEnd(long touchId)
+    {
+        if (_touchToKey.TryGetValue(touchId, out var key))
+        {
+            _touchToKey.Remove(touchId);
+            ReleaseKey(key);
+        }
+    }
+
+    private void PressKey(int key)
+    {
+        if (_keyRefCounts.TryGetValue(key, out var count))
+        {
+            _keyRefCounts[key] = count + 1;
+        }
+        else
+        {
+            _keyRefCounts[key] = 1;
+            _activeKeys.Add(key);
+            KeyPressed?.Invoke(this, Frequencies[key]);
+        }
+    }
+
+    private void ReleaseKey(int key)
+    {
+        if (_keyRefCounts.TryGetValue(key, out var count))
+        {
+            count--;
+            if (count <= 0)
+            {
+                _keyRefCounts.Remove(key);
+                _activeKeys.Remove(key);
+                KeyReleased?.Invoke(this, Frequencies[key]);
+            }
+            else
+            {
+                _keyRefCounts[key] = count;
+            }
+        }
+    }
+
     public void Draw(ICanvas canvas, RectF dirtyRect)
     {
         float width = dirtyRect.Width;
@@ -143,7 +199,7 @@ public class PianoKeyboard : IDrawable
             if (IsBlackKey[i]) continue;
             
             float x = whiteIndex * whiteKeyWidth;
-            bool isActive = (i == _activeKey);
+            bool isActive = _activeKeys.Contains(i);
             
             // Key background
             canvas.FillColor = isActive ? Color.FromArgb("#aaaaff") : Colors.White;
@@ -173,7 +229,7 @@ public class PianoKeyboard : IDrawable
             
             int whitesBefore = CountWhiteKeysBefore(i);
             float x = (whitesBefore * whiteKeyWidth) - (blackKeyWidth / 2);
-            bool isActive = (i == _activeKey);
+            bool isActive = _activeKeys.Contains(i);
             
             // Black key
             canvas.FillColor = isActive ? Color.FromArgb("#4444aa") : Color.FromArgb("#222");
