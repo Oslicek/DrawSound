@@ -1,6 +1,6 @@
 # Project Context
 
-> **Last Updated:** 2025-12-13
+> **Last Updated:** 2025-12-14
 
 ## Overview
 
@@ -26,7 +26,7 @@ DrawSound/
 │   │   ├── Platforms/
 │   │   │   └── Android/
 │   │   │       └── Services/
-│   │   │           └── TonePlayer.cs # Android AudioTrack player
+│   │   │           └── TonePlayer.cs # AudioTrack player
 │   │   ├── Services/
 │   │   │   └── ITonePlayer.cs        # Audio interface
 │   │   ├── MainPage.xaml             # Synthesizer UI
@@ -34,12 +34,17 @@ DrawSound/
 │   │
 │   └── DrawSound.Core/               # Shared library (platform-independent)
 │       └── Audio/
-│           └── WaveTableGenerator.cs # Wavetable generation
+│           ├── WaveTableGenerator.cs # Wavetable generation
+│           └── VoiceMixer.cs         # Polyphonic mixing with release
 │
 ├── tests/
 │   └── DrawSound.Tests/              # Unit tests
-│       └── WaveTableGeneratorTests.cs
-│
+│       ├── WaveTableGeneratorTests.cs
+│       ├── BezierNodeTests.cs
+│       ├── BezierWaveSamplerTests.cs
+│       ├── HarmonicMixerTests.cs
+│       ├── UpdateThrottlerTests.cs
+│       └── VoiceMixerTests.cs
 ├── .gitignore
 ├── global.json
 ├── PROJECT_RULES.md
@@ -52,7 +57,7 @@ DrawSound/
 **Pattern:** Service-based with Dependency Injection
 
 **Layers:**
-- `DrawSound.Core` - Platform-independent audio logic (wavetable generation)
+- `DrawSound.Core` - Platform-independent audio logic (wavetable, poly mixer)
 - `DrawSound` - MAUI app with platform-specific implementations
 
 **Audio Engine:**
@@ -65,21 +70,21 @@ DrawSound/
 | Component | Location | Purpose |
 |-----------|----------|---------|
 | `WaveTableGenerator` | Core | Generates sine wave tables |
+| `VoiceMixer` | Core | Polyphonic voice mixing with per-voice release |
 | `ITonePlayer` | DrawSound | Audio playback interface |
-| `TonePlayer` | Android | Android AudioTrack implementation |
-| `MainPage` | DrawSound | Synthesizer UI with tone button |
+| `TonePlayer` | Android | AudioTrack player using `VoiceMixer` |
+| `MainPage` | DrawSound | Synth UI (Bezier editor, harmonics, preview, keyboard) |
 
 ## Tests
 
-| Test Class | Tests | Purpose |
-|------------|-------|---------|
-| `WaveTableGeneratorTests` | 7 | Validates sine wave generation |
-
-**Test Coverage:**
-- Wave shape verification (start, peak, zero-crossing, trough)
-- Sample count accuracy
-- Amplitude range validation
-- Multiple frequency support
+| Test Class | Purpose |
+|------------|---------|
+| `WaveTableGeneratorTests` | Sine wavetable shape/count/amplitude |
+| `BezierNodeTests` | Bezier node geometry/handles/mirroring |
+| `BezierWaveSamplerTests` | Sampling nodes to wavetable |
+| `HarmonicMixerTests` | Harmonic mixing and normalization |
+| `UpdateThrottlerTests` | Throttling behavior |
+| `VoiceMixerTests` | Polyphony mixing, release, max-voice handling |
 
 ## Test Devices
 
@@ -89,30 +94,27 @@ DrawSound/
 
 ## Current State
 
-**Phase:** TDD refactoring complete
+**Phase:** Polyphony + performance tuning
 
 **Completed:**
-- [x] Project setup with .NET 10 LTS
-- [x] Single-tone synthesizer (C4 button)
+- [x] Project setup with .NET 10 LTS and MAUI 10
 - [x] Wavetable synthesis (44.1kHz, 32-bit float)
-- [x] Extracted shared WaveTableGenerator to Core library
-- [x] Unit tests for wave generation
+- [x] Shared core audio library with tests
+- [x] Harmonic mixer and preview
+- [x] Bezier curve editor with touch support
+- [x] 6 harmonic sliders (single GraphicsView) with throttled redraws
+- [x] Piano keyboard (C3–C5)
+- [x] Short release envelope to remove key-up clicks
+- [x] 6-voice polyphony via `VoiceMixer` + AudioTrack
 
 **Current Features:**
-- Single button plays middle C (261.63 Hz)
-- Press to play, release to stop
-- Bezier curve wave editor (like Inkscape)
-  - Tap to add nodes, drag to move
-  - Drag handles to shape curves
-- 13 harmonic sliders (base + 12 overtones)
-  - Equalizer-style vertical sliders
-  - Base frequency starts at max, overtones at zero
-  - Real-time mixing preview
-- Result waveform preview (read-only)
-- "Sine", "Clear", "Delete Node" buttons
-- Real-time audio updates when editing
+- Playable 25-key keyboard (C3–C5), press/release mapped to per-voice playback
+- Editable Bezier waveform; sine/reset/delete node buttons
+- Harmonic sliders (6) controlling overtones; mixed preview view
+- Single-cycle preview rendering; throttled UI/audio updates
+- Configurable audio settings (`appsettings.json`): `ReleaseMs`, `MaxPolyphony`
 
 ## Notes
 
 - GitHub: https://github.com/Oslicek/DrawSound
-- WiFi debugging enabled on physical devices
+- WiFi debugging enabled on physical devices (phone + tablet)

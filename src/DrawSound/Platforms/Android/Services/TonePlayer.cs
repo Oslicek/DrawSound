@@ -21,17 +21,15 @@ public class TonePlayer : ITonePlayer, IDisposable
     
     private const int SampleRate = 44100;
     private readonly WaveTableGenerator _waveTableGenerator;
+    private readonly VoiceMixer _mixer;
     private readonly object _lock = new();
-    private readonly int _releaseSamples;
-    private readonly int _maxPolyphony;
-    private readonly List<Voice> _voices = new();
 
     public TonePlayer(IOptions<AudioSettings> audioOptions)
     {
         _waveTableGenerator = new WaveTableGenerator(SampleRate);
         var releaseMs = audioOptions.Value.ReleaseMs;
-        _releaseSamples = Math.Max(1, (int)Math.Round(SampleRate * (releaseMs / 1000d)));
-        _maxPolyphony = Math.Max(1, audioOptions.Value.MaxPolyphony);
+        var releaseSamples = Math.Max(1, (int)Math.Round(SampleRate * (releaseMs / 1000d)));
+        _mixer = new VoiceMixer(releaseSamples, audioOptions.Value.MaxPolyphony);
     }
 
     public void StartTone(double frequency)
@@ -42,60 +40,18 @@ public class TonePlayer : ITonePlayer, IDisposable
 
     public void StartTone(double frequency, float[] waveTable)
     {
-        var cloned = (float[])waveTable.Clone();
         EnsurePlaybackThread();
-
-        lock (_lock)
-        {
-            if (_voices.Count >= _maxPolyphony)
-            {
-                _voices.RemoveAt(0);
-            }
-
-            _voices.Add(new Voice
-            {
-                Frequency = frequency,
-                WaveTable = cloned,
-                Position = 0,
-                Releasing = false,
-                ReleaseSamplesRemaining = _releaseSamples
-            });
-        }
-    }
-
-    public void UpdateWaveTable(float[] waveTable)
-    {
-        // Kept for interface compatibility; not used in polyphonic path
+        _mixer.AddVoice(frequency, waveTable);
     }
 
     public void UpdateWaveTable(double frequency, float[] waveTable)
     {
-        var cloned = (float[])waveTable.Clone();
-        lock (_lock)
-        {
-            foreach (var voice in _voices)
-            {
-                if (Math.Abs(voice.Frequency - frequency) < 0.0001)
-                {
-                    voice.WaveTable = cloned;
-                    if (voice.Position >= cloned.Length)
-                        voice.Position %= cloned.Length;
-                }
-            }
-        }
+        _mixer.UpdateVoice(frequency, waveTable);
     }
 
     public void StopTone(double frequency)
     {
-        lock (_lock)
-        {
-            var voice = _voices.FirstOrDefault(v => Math.Abs(v.Frequency - frequency) < 0.0001);
-            if (voice != null)
-            {
-                voice.Releasing = true;
-                voice.ReleaseSamplesRemaining = _releaseSamples;
-            }
-        }
+        _mixer.ReleaseVoice(frequency);
     }
 
     private void EnsurePlaybackThread()
@@ -138,45 +94,7 @@ public class TonePlayer : ITonePlayer, IDisposable
 
         while (!token.IsCancellationRequested)
         {
-            Voice[] snapshot;
-            lock (_lock)
-            {
-                snapshot = _voices.ToArray();
-            }
-
-            if (snapshot.Length == 0)
-            {
-                Array.Clear(buffer, 0, bufferSamples);
-                _audioTrack?.Write(buffer, 0, bufferSamples, WriteMode.Blocking);
-                Thread.Sleep(5);
-                continue;
-            }
-
-            for (int i = 0; i < bufferSamples; i++)
-            {
-                float sample = 0f;
-
-                foreach (var voice in snapshot)
-                {
-                    var table = voice.WaveTable;
-                    int len = table.Length;
-                    if (len == 0) continue;
-
-                    float gain = voice.Releasing
-                        ? Math.Max(0f, voice.ReleaseSamplesRemaining / (float)_releaseSamples)
-                        : 1f;
-
-                    sample += table[voice.Position % len] * gain;
-                    voice.Position = (voice.Position + 1) % len;
-
-                    if (voice.Releasing && voice.ReleaseSamplesRemaining > 0)
-                    {
-                        voice.ReleaseSamplesRemaining--;
-                    }
-                }
-
-                buffer[i] = Math.Clamp(sample, -1f, 1f);
-            }
+            _mixer.Mix(buffer);
 
             try
             {
@@ -185,18 +103,6 @@ public class TonePlayer : ITonePlayer, IDisposable
             catch
             {
                 break;
-            }
-
-            lock (_lock)
-            {
-                for (int v = _voices.Count - 1; v >= 0; v--)
-                {
-                    var voice = _voices[v];
-                    if (voice.Releasing && voice.ReleaseSamplesRemaining <= 0)
-                    {
-                        _voices.RemoveAt(v);
-                    }
-                }
             }
         }
     }
