@@ -19,15 +19,19 @@ public class VoiceMixer
         public int ReleaseStartIndex { get; set; }
     }
 
-    private const int AttackLengthSamples = 1024; // ~23ms Hann attack
-    private const int ReleaseRampSamples = 1024;  // ~23ms Hann release
+    private const int AttackLengthSamples = 256; // ~6ms Hann attack
+    private const int ReleaseRampSamples = 256;  // ~6ms Hann release
     private const int ExtraReleaseSamples = 0;
+    private const int MixCrossfadeSamples = 32;
     private readonly int _sampleRate;
     private readonly int _releaseSamples;
     private readonly int _maxVoices;
     private readonly List<Voice> _voices = new();
     private readonly object _lock = new();
     private float _lastOutput;
+    private float _prevOutput;
+    private int _mixCrossfadeRemaining;
+    private int _lastVoiceCount;
 
     public VoiceMixer(int sampleRate, int releaseSamples, int maxVoices)
     {
@@ -51,9 +55,11 @@ public class VoiceMixer
             foreach (var v in _voices)
             {
                 v.Releasing = true;
-                v.ReleaseSamplesRemaining = ReleaseRampSamples;
+                v.ReleaseSamplesRemaining = ReleaseRampSamples + ExtraReleaseSamples;
                 v.ReleaseStartIndex = FindNearestZeroCross(v.WaveTable, (int)v.Phase);
             }
+            _mixCrossfadeRemaining = MixCrossfadeSamples;
+            _lastVoiceCount = _voices.Count;
         }
     }
 
@@ -74,10 +80,12 @@ public class VoiceMixer
                 Phase = FindBestStartPhase(cloned),
                 PhaseIncrement = CalcPhaseIncrement(frequency, cloned.Length),
                 Releasing = false,
-                ReleaseSamplesRemaining = ReleaseRampSamples,
+                ReleaseSamplesRemaining = ReleaseRampSamples + ExtraReleaseSamples,
                 AttackSamplesRemaining = AttackLengthSamples,
                 ReleaseStartIndex = 0
             });
+            _mixCrossfadeRemaining = MixCrossfadeSamples;
+            _lastVoiceCount = _voices.Count;
         }
     }
 
@@ -107,9 +115,11 @@ public class VoiceMixer
             if (voice != null)
             {
                 voice.Releasing = true;
-                voice.ReleaseSamplesRemaining = ReleaseRampSamples;
+                voice.ReleaseSamplesRemaining = ReleaseRampSamples + ExtraReleaseSamples;
                 voice.ReleaseStartIndex = FindNearestZeroCross(voice.WaveTable, (int)voice.Phase);
             }
+            _mixCrossfadeRemaining = MixCrossfadeSamples;
+            _lastVoiceCount = _voices.Count;
         }
     }
 
@@ -125,6 +135,12 @@ public class VoiceMixer
 
         if (snapshot.Length == 0)
             return;
+
+        if (snapshot.Length != _lastVoiceCount)
+        {
+            _mixCrossfadeRemaining = MixCrossfadeSamples;
+            _lastVoiceCount = snapshot.Length;
+        }
 
         for (int i = 0; i < buffer.Length; i++)
         {
@@ -186,9 +202,17 @@ public class VoiceMixer
             float driven = sample * mixScale;
             float limited = MathF.Tanh(driven); // smooth limiting
 
+            if (_mixCrossfadeRemaining > 0)
+            {
+                float t = 1f - (_mixCrossfadeRemaining / (float)MixCrossfadeSamples);
+                limited = _prevOutput + t * (limited - _prevOutput);
+                _mixCrossfadeRemaining--;
+            }
+
             // Light output smoothing to kill residual clicks between buffers
             float smoothed = _lastOutput + 0.2f * (limited - _lastOutput);
             buffer[i] = smoothed;
+            _prevOutput = smoothed;
             _lastOutput = smoothed;
         }
 
