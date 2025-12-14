@@ -25,7 +25,9 @@ public class VoiceMixer
     private readonly int _maxVoices;
     private readonly List<Voice> _voices = new();
     private readonly object _lock = new();
-    private float _lastOutput;
+    private int _lastVoiceCount;
+    private int _crossfadeRemaining;
+    private float _lastMixed;
 
     public VoiceMixer(int sampleRate, int releaseSamples, int maxVoices)
     {
@@ -121,6 +123,13 @@ public class VoiceMixer
         if (snapshot.Length == 0)
             return;
 
+        bool voiceCountChanged = snapshot.Length != _lastVoiceCount;
+        if (voiceCountChanged)
+        {
+            _crossfadeRemaining = 64; // short mix crossfade on topology change
+            _lastVoiceCount = snapshot.Length;
+        }
+
         for (int i = 0; i < buffer.Length; i++)
         {
             float sample = 0f;
@@ -181,10 +190,15 @@ public class VoiceMixer
             float driven = sample * mixScale;
             float limited = MathF.Tanh(driven); // smooth limiting
 
-            // Light output smoothing to reduce residual clicks between buffers
-            float smoothed = _lastOutput + 0.2f * (limited - _lastOutput);
-            buffer[i] = smoothed;
-            _lastOutput = smoothed;
+            if (_crossfadeRemaining > 0)
+            {
+                float t = 1f - (_crossfadeRemaining / 64f);
+                limited = _lastMixed + t * (limited - _lastMixed);
+                _crossfadeRemaining--;
+            }
+
+            buffer[i] = limited;
+            _lastMixed = limited;
         }
 
         lock (_lock)
