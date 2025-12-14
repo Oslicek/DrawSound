@@ -218,9 +218,10 @@ public partial class MainPage : ContentPage
             },
             ColumnDefinitions = new ColumnDefinitionCollection
             {
-                new ColumnDefinition(new GridLength(1, GridUnitType.Star)),
-                new ColumnDefinition(new GridLength(100)),
-                new ColumnDefinition(new GridLength(120))
+                // Slightly narrow the editor canvas and give more room to sliders/preview
+                new ColumnDefinition(new GridLength(0.9, GridUnitType.Star)),
+                new ColumnDefinition(new GridLength(0.7, GridUnitType.Star)),
+                new ColumnDefinition(new GridLength(0.7, GridUnitType.Star))
             },
             Padding = new Thickness(8),
             BackgroundColor = Color.FromArgb("#1a1a2e")
@@ -248,7 +249,8 @@ public partial class MainPage : ContentPage
             Stroke = Color.FromArgb("#333"),
             StrokeThickness = 1,
             BackgroundColor = Color.FromArgb("#0f0f1a"),
-            Margin = new Thickness(0, 0, 4, 4)
+            Margin = new Thickness(0, 0, 4, 4),
+            MinimumWidthRequest = 180
         };
         _landscapeHarmonicsView = new GraphicsView();
         SetupHarmonicsTouch(_landscapeHarmonicsView);
@@ -263,7 +265,8 @@ public partial class MainPage : ContentPage
             StrokeShape = new RoundRectangle { CornerRadius = 4 },
             Stroke = Color.FromArgb("#2a5a2a"),
             StrokeThickness = 1,
-            Margin = new Thickness(0, 0, 0, 4)
+            Margin = new Thickness(0, 0, 0, 4),
+            MinimumWidthRequest = 200
         };
         _landscapePreviewView = new GraphicsView();
         previewBorder.Content = _landscapePreviewView;
