@@ -76,7 +76,7 @@
                 Stroke="#444"
                 StrokeThickness="1"
                 Margin="0,4,0,0"
-                MaxHeightRequest="80">
+                HeightRequest="80">
             <GraphicsView x:Name="PianoView" />
         </Border>
     
