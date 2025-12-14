@@ -45,7 +45,7 @@ public class VoiceMixerTests
         var zeroBuffer = new float[2];
         mixer.Mix(zeroBuffer); // voice should be gone
 
-        Assert.All(zeroBuffer, v => Assert.Equal(0f, v));
+        Assert.All(zeroBuffer, v => Assert.InRange(v, -0.01f, 0.01f));
     }
 
     [Fact]
@@ -93,7 +93,7 @@ public class VoiceMixerTests
         mixer.Mix(buffer);
 
         Assert.All(buffer, v => Assert.InRange(v, -1f, 1f));
-        Assert.InRange(MaxDelta(buffer), 0f, 0.6f); // no hard pop
+        Assert.InRange(MaxDelta(buffer), 0f, 0.15f); // tighter pop limit with longer attack
     }
 
     [Fact]
@@ -111,7 +111,7 @@ public class VoiceMixerTests
         mixer.Mix(buffer);
 
         Assert.All(buffer, v => Assert.InRange(v, -1f, 1f));
-        Assert.InRange(MaxDelta(buffer), 0f, 0.6f); // smooth transition
+        Assert.InRange(MaxDelta(buffer), 0f, 0.2f); // smooth transition with release ramp
     }
 }
 

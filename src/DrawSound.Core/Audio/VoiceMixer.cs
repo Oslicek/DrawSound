@@ -18,8 +18,8 @@ public class VoiceMixer
         public int AttackSamplesRemaining { get; set; }
     }
 
-    private const int AttackLengthSamples = 256; // ~6ms at 44.1kHz
-    private const int ReleaseRampSamples = 32;   // short de-click ramp on release start
+    private const int AttackLengthSamples = 512; // ~11.6ms at 44.1kHz for smooth onset
+    private const int ReleaseRampSamples = 64;   // short de-click ramp on release start
     private readonly int _sampleRate;
     private readonly int _releaseSamples;
     private readonly int _maxVoices;
@@ -48,7 +48,7 @@ public class VoiceMixer
             foreach (var v in _voices)
             {
                 v.Releasing = true;
-                v.ReleaseSamplesRemaining = _releaseSamples;
+                v.ReleaseSamplesRemaining = _releaseSamples + ReleaseRampSamples;
             }
         }
     }
@@ -102,7 +102,7 @@ public class VoiceMixer
             if (voice != null)
             {
                 voice.Releasing = true;
-                voice.ReleaseSamplesRemaining = _releaseSamples;
+                voice.ReleaseSamplesRemaining = _releaseSamples + ReleaseRampSamples;
             }
         }
     }
