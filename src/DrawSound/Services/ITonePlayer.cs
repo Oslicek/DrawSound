@@ -4,6 +4,6 @@ public interface ITonePlayer
 {
     void StartTone(double frequency);
     void StartTone(double frequency, float[] waveTable);
-    void UpdateWaveTable(float[] waveTable);
-    void StopTone();
+    void UpdateWaveTable(double frequency, float[] waveTable);
+    void StopTone(double frequency);
 }

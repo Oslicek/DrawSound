@@ -18,7 +18,7 @@ public class PianoKeyboard : IDrawable
     private readonly float[] _whiteKeyPositions = new float[15];
     
     public event EventHandler<double>? KeyPressed;
-    public event EventHandler? KeyReleased;
+    public event EventHandler<double>? KeyReleased;
     
     public IDrawable Drawable => this;
 
@@ -59,8 +59,9 @@ public class PianoKeyboard : IDrawable
     {
         if (_activeKey >= 0)
         {
+            var freq = Frequencies[_activeKey];
             _activeKey = -1;
-            KeyReleased?.Invoke(this, EventArgs.Empty);
+            KeyReleased?.Invoke(this, freq);
         }
     }
 

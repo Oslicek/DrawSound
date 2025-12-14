@@ -19,7 +19,7 @@ public partial class MainPage : ContentPage
     private readonly UpdateThrottler _updateThrottler;
     private readonly HarmonicsView _harmonicsControl;
     private readonly PianoKeyboard _pianoControl;
-    private double _currentFrequency;
+    private readonly HashSet<double> _activeFrequencies = new();
     private bool _isPlaying;
     private bool _pendingUpdate;
     private float _canvasWidth;
@@ -35,8 +35,8 @@ public partial class MainPage : ContentPage
     private GraphicsView? _landscapePianoView;
 
     public MainPage(ITonePlayer tonePlayer)
-    {
-        InitializeComponent();
+	{
+		InitializeComponent();
         _tonePlayer = tonePlayer;
         _harmonicLevels = HarmonicMixer.GetDefaultLevels();
         _updateThrottler = new UpdateThrottler(ThrottleMs);
@@ -219,7 +219,7 @@ public partial class MainPage : ContentPage
             ColumnDefinitions = new ColumnDefinitionCollection
             {
                 // Narrow the editor canvas and give noticeably more room to sliders/preview
-                new ColumnDefinition(new GridLength(0.6, GridUnitType.Star)),
+                new ColumnDefinition(new GridLength(1.0, GridUnitType.Star)),
                 new ColumnDefinition(new GridLength(1.0, GridUnitType.Star)),
                 new ColumnDefinition(new GridLength(1.0, GridUnitType.Star))
             },
@@ -331,7 +331,7 @@ public partial class MainPage : ContentPage
 
     private void OnPianoKeyPressed(object? sender, double frequency)
     {
-        _currentFrequency = frequency;
+        _activeFrequencies.Add(frequency);
         _isPlaying = true;
         WaveformDrawable.SetPlaying(true);
         InvalidateWaveformViews();
@@ -340,13 +340,17 @@ public partial class MainPage : ContentPage
         _tonePlayer.StartTone(frequency, playbackWave);
     }
 
-    private void OnPianoKeyReleased(object? sender, EventArgs e)
+    private void OnPianoKeyReleased(object? sender, double frequency)
     {
-        _isPlaying = false;
-        WaveformDrawable.SetPlaying(false);
+        _activeFrequencies.Remove(frequency);
+        _isPlaying = _activeFrequencies.Count > 0;
+        if (!_isPlaying)
+        {
+            WaveformDrawable.SetPlaying(false);
+        }
         InvalidateWaveformViews();
 
-        _tonePlayer.StopTone();
+        _tonePlayer.StopTone(frequency);
     }
 
     private void InvalidateWaveformViews()
@@ -415,10 +419,12 @@ public partial class MainPage : ContentPage
 
     private void UpdatePlayback()
     {
-        if (_currentFrequency > 0)
+        if (!_isPlaying) return;
+
+        foreach (var freq in _activeFrequencies)
         {
-            var playbackWave = GetPlaybackWaveTable(_currentFrequency);
-            _tonePlayer.UpdateWaveTable(playbackWave);
+            var playbackWave = GetPlaybackWaveTable(freq);
+            _tonePlayer.UpdateWaveTable(freq, playbackWave);
         }
     }
 
@@ -481,5 +487,5 @@ public partial class MainPage : ContentPage
     {
         _canvasWidth = (float)WaveformView.Width;
         _canvasHeight = (float)WaveformView.Height;
-    }
+	}
 }

@@ -6,22 +6,32 @@ namespace DrawSound.Services;
 
 public class TonePlayer : ITonePlayer, IDisposable
 {
+    private class Voice
+    {
+        public double Frequency { get; set; }
+        public float[] WaveTable { get; set; } = Array.Empty<float>();
+        public int Position { get; set; }
+        public bool Releasing { get; set; }
+        public int ReleaseSamplesRemaining { get; set; }
+    }
+
     private AudioTrack? _audioTrack;
     private CancellationTokenSource? _cts;
     private Task? _playTask;
     
     private const int SampleRate = 44100;
     private readonly WaveTableGenerator _waveTableGenerator;
-    private float[]? _waveTable;
-    private readonly object _waveTableLock = new();
+    private readonly object _lock = new();
     private readonly int _releaseSamples;
-    private volatile bool _releasePending;
+    private readonly int _maxPolyphony;
+    private readonly List<Voice> _voices = new();
 
     public TonePlayer(IOptions<AudioSettings> audioOptions)
     {
         _waveTableGenerator = new WaveTableGenerator(SampleRate);
         var releaseMs = audioOptions.Value.ReleaseMs;
         _releaseSamples = Math.Max(1, (int)Math.Round(SampleRate * (releaseMs / 1000d)));
+        _maxPolyphony = Math.Max(1, audioOptions.Value.MaxPolyphony);
     }
 
     public void StartTone(double frequency)
@@ -32,14 +42,68 @@ public class TonePlayer : ITonePlayer, IDisposable
 
     public void StartTone(double frequency, float[] waveTable)
     {
-        StopTone();
+        var cloned = (float[])waveTable.Clone();
+        EnsurePlaybackThread();
 
-        lock (_waveTableLock)
+        lock (_lock)
         {
-            _waveTable = (float[])waveTable.Clone();
-        }
+            if (_voices.Count >= _maxPolyphony)
+            {
+                _voices.RemoveAt(0);
+            }
 
-        _releasePending = false;
+            _voices.Add(new Voice
+            {
+                Frequency = frequency,
+                WaveTable = cloned,
+                Position = 0,
+                Releasing = false,
+                ReleaseSamplesRemaining = _releaseSamples
+            });
+        }
+    }
+
+    public void UpdateWaveTable(float[] waveTable)
+    {
+        // Kept for interface compatibility; not used in polyphonic path
+    }
+
+    public void UpdateWaveTable(double frequency, float[] waveTable)
+    {
+        var cloned = (float[])waveTable.Clone();
+        lock (_lock)
+        {
+            foreach (var voice in _voices)
+            {
+                if (Math.Abs(voice.Frequency - frequency) < 0.0001)
+                {
+                    voice.WaveTable = cloned;
+                    if (voice.Position >= cloned.Length)
+                        voice.Position %= cloned.Length;
+                }
+            }
+        }
+    }
+
+    public void StopTone(double frequency)
+    {
+        lock (_lock)
+        {
+            var voice = _voices.FirstOrDefault(v => Math.Abs(v.Frequency - frequency) < 0.0001);
+            if (voice != null)
+            {
+                voice.Releasing = true;
+                voice.ReleaseSamplesRemaining = _releaseSamples;
+            }
+        }
+    }
+
+    private void EnsurePlaybackThread()
+    {
+        if (_playTask != null && !_playTask.IsCompleted)
+            return;
+
+        _cts?.Cancel();
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
 
@@ -48,6 +112,7 @@ public class TonePlayer : ITonePlayer, IDisposable
             ChannelOut.Mono,
             Encoding.PcmFloat);
 
+        _audioTrack?.Release();
         _audioTrack = new AudioTrack.Builder()
             .SetAudioAttributes(new AudioAttributes.Builder()
                 .SetUsage(AudioUsageKind.Media)!
@@ -64,49 +129,53 @@ public class TonePlayer : ITonePlayer, IDisposable
 
         _audioTrack.Play();
 
-        _playTask = Task.Run(() => PlayWaveTable(minBufferSize / sizeof(float), token), token);
+        _playTask = Task.Run(() => PlayVoices(minBufferSize / sizeof(float), token), token);
     }
 
-    public void UpdateWaveTable(float[] waveTable)
-    {
-        lock (_waveTableLock)
-        {
-            _waveTable = (float[])waveTable.Clone();
-        }
-    }
-
-    private void PlayWaveTable(int bufferSamples, CancellationToken token)
+    private void PlayVoices(int bufferSamples, CancellationToken token)
     {
         var buffer = new float[bufferSamples];
-        int waveTableIndex = 0;
 
         while (!token.IsCancellationRequested)
         {
-            float[]? currentWaveTable;
-            lock (_waveTableLock)
+            Voice[] snapshot;
+            lock (_lock)
             {
-                currentWaveTable = _waveTable;
+                snapshot = _voices.ToArray();
             }
 
-            if (currentWaveTable == null || currentWaveTable.Length == 0)
+            if (snapshot.Length == 0)
             {
-                Thread.Sleep(10);
+                Array.Clear(buffer, 0, bufferSamples);
+                _audioTrack?.Write(buffer, 0, bufferSamples, WriteMode.Blocking);
+                Thread.Sleep(5);
                 continue;
             }
 
-            int waveTableLength = currentWaveTable.Length;
-
-            if (_releasePending)
-            {
-                WriteRelease(buffer, bufferSamples, currentWaveTable, ref waveTableIndex, waveTableLength);
-                break;
-            }
-
-            // Fill buffer by looping through the wavetable
             for (int i = 0; i < bufferSamples; i++)
             {
-                buffer[i] = currentWaveTable[waveTableIndex % waveTableLength];
-                waveTableIndex = (waveTableIndex + 1) % waveTableLength;
+                float sample = 0f;
+
+                foreach (var voice in snapshot)
+                {
+                    var table = voice.WaveTable;
+                    int len = table.Length;
+                    if (len == 0) continue;
+
+                    float gain = voice.Releasing
+                        ? Math.Max(0f, voice.ReleaseSamplesRemaining / (float)_releaseSamples)
+                        : 1f;
+
+                    sample += table[voice.Position % len] * gain;
+                    voice.Position = (voice.Position + 1) % len;
+
+                    if (voice.Releasing && voice.ReleaseSamplesRemaining > 0)
+                    {
+                        voice.ReleaseSamplesRemaining--;
+                    }
+                }
+
+                buffer[i] = Math.Clamp(sample, -1f, 1f);
             }
 
             try
@@ -117,19 +186,23 @@ public class TonePlayer : ITonePlayer, IDisposable
             {
                 break;
             }
+
+            lock (_lock)
+            {
+                for (int v = _voices.Count - 1; v >= 0; v--)
+                {
+                    var voice = _voices[v];
+                    if (voice.Releasing && voice.ReleaseSamplesRemaining <= 0)
+                    {
+                        _voices.RemoveAt(v);
+                    }
+                }
+            }
         }
     }
 
-    public void StopTone()
+    public void Dispose()
     {
-        _releasePending = true;
-
-        try
-        {
-            _playTask?.Wait(200);
-        }
-        catch { }
-
         _cts?.Cancel();
 
         try
@@ -142,40 +215,9 @@ public class TonePlayer : ITonePlayer, IDisposable
         _audioTrack?.Release();
         _audioTrack?.Dispose();
         _audioTrack = null;
-        
+
         _cts?.Dispose();
         _cts = null;
         _playTask = null;
-    }
-
-    private void WriteRelease(float[] buffer, int bufferSamples, float[] currentWaveTable, ref int waveTableIndex, int waveTableLength)
-    {
-        int releaseCount = Math.Min(_releaseSamples, bufferSamples);
-        for (int i = 0; i < releaseCount; i++)
-        {
-            float gain = 1f - (i / (float)releaseCount);
-            buffer[i] = currentWaveTable[waveTableIndex % waveTableLength] * gain;
-            waveTableIndex = (waveTableIndex + 1) % waveTableLength;
-        }
-
-        // Zero any remainder of the buffer to avoid artifacts
-        if (releaseCount < bufferSamples)
-        {
-            Array.Clear(buffer, releaseCount, bufferSamples - releaseCount);
-        }
-
-        try
-        {
-            _audioTrack?.Write(buffer, 0, bufferSamples, WriteMode.Blocking);
-        }
-        catch
-        {
-            // ignore write errors during release
-        }
-    }
-
-    public void Dispose()
-    {
-        StopTone();
     }
 }
