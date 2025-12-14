@@ -25,6 +25,7 @@ public class VoiceMixer
     private readonly int _maxVoices;
     private readonly List<Voice> _voices = new();
     private readonly object _lock = new();
+    private float _lastOutput;
 
     public VoiceMixer(int sampleRate, int releaseSamples, int maxVoices)
     {
@@ -178,7 +179,12 @@ public class VoiceMixer
             // Equal-power headroom with gentle soft clip to avoid resonance/clip spikes
             float mixScale = 0.6f / MathF.Max(1f, MathF.Sqrt(snapshot.Length));
             float driven = sample * mixScale;
-            buffer[i] = MathF.Tanh(driven); // smooth limiting
+            float limited = MathF.Tanh(driven); // smooth limiting
+
+            // Light output smoothing to reduce residual clicks between buffers
+            float smoothed = _lastOutput + 0.2f * (limited - _lastOutput);
+            buffer[i] = smoothed;
+            _lastOutput = smoothed;
         }
 
         lock (_lock)
