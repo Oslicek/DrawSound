@@ -15,8 +15,10 @@ public class VoiceMixer
         public float PhaseIncrement { get; set; }
         public bool Releasing { get; set; }
         public int ReleaseSamplesRemaining { get; set; }
+        public int AttackSamplesRemaining { get; set; }
     }
 
+    private const int AttackLengthSamples = 64;
     private readonly int _sampleRate;
     private readonly int _releaseSamples;
     private readonly int _maxVoices;
@@ -67,7 +69,8 @@ public class VoiceMixer
                 Phase = 0f,
                 PhaseIncrement = CalcPhaseIncrement(frequency, cloned.Length),
                 Releasing = false,
-                ReleaseSamplesRemaining = _releaseSamples
+                ReleaseSamplesRemaining = _releaseSamples,
+                AttackSamplesRemaining = AttackLengthSamples
             });
         }
     }
@@ -116,7 +119,7 @@ public class VoiceMixer
         if (snapshot.Length == 0)
             return;
 
-        float mixScale = 0.8f / snapshot.Length; // headroom and averaging
+        float mixScale = 0.7f / Math.Max(1, snapshot.Length); // headroom and averaging
 
         for (int i = 0; i < buffer.Length; i++)
         {
@@ -139,6 +142,13 @@ public class VoiceMixer
                 float gain = voice.Releasing
                     ? Math.Max(0f, voice.ReleaseSamplesRemaining / (float)_releaseSamples)
                     : 1f;
+
+                if (voice.AttackSamplesRemaining > 0)
+                {
+                    float attackGain = 1f - (voice.AttackSamplesRemaining / (float)AttackLengthSamples);
+                    gain *= attackGain;
+                    voice.AttackSamplesRemaining--;
+                }
 
                 sample += waveSample * gain;
                 voice.Phase += voice.PhaseIncrement;
