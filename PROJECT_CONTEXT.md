@@ -84,7 +84,7 @@ DrawSound/
 | `BezierWaveSamplerTests` | Sampling nodes to wavetable |
 | `HarmonicMixerTests` | Harmonic mixing and normalization |
 | `UpdateThrottlerTests` | Throttling behavior |
-| `VoiceMixerTests` | Polyphony mixing, release, max-voice handling |
+| `VoiceMixerTests` | Polyphony mixing, release, max-voice handling, mix quality, attack/release transitions |
 
 ## Test Devices
 
@@ -106,6 +106,7 @@ DrawSound/
 - [x] Piano keyboard (C3–C5) with stable multi-touch
 - [x] Short attack/release envelopes to avoid clicks on note on/off
 - [x] 6-voice polyphony via `VoiceMixer` + AudioTrack with headroom scaling
+- [x] Mixer regression tests for mix accuracy and attack/release transitions
 
 **Current Features:**
 - Playable 25-key keyboard (C3–C5), multi-touch mapped to per-voice playback

@@ -63,6 +63,29 @@ public class VoiceMixerTests
     }
 
     [Fact]
+    public void TwoVoices_SteadyMix_MatchesExpectedWithinTolerance()
+    {
+        var mixer = new VoiceMixer(sampleRate: 44100, releaseSamples: 8, maxVoices: 4);
+        // Small amplitude to stay in linear region of tanh/scale
+        mixer.AddVoice(440, MakeWave(0.1f));
+        mixer.AddVoice(660, MakeWave(0.1f));
+
+        // Warm-up past attack
+        var warm = new float[700];
+        mixer.Mix(warm);
+
+        var buffer = new float[32];
+        mixer.Mix(buffer);
+
+        // Expected steady value: (0.1 + 0.1) * 0.6 / sqrt(2)
+        float expected = (0.2f) * 0.6f / (float)Math.Sqrt(2);
+        foreach (var v in buffer)
+        {
+            Assert.InRange(v, expected - 0.01f, expected + 0.01f);
+        }
+    }
+
+    [Fact]
     public void UpdateVoice_ChangesWaveTable()
     {
         var mixer = new VoiceMixer(sampleRate: 44100, releaseSamples: 2, maxVoices: 2);
@@ -97,6 +120,28 @@ public class VoiceMixerTests
     }
 
     [Fact]
+    public void AddSecondVoice_EnvelopeIsBoundedAndSmooth()
+    {
+        var mixer = new VoiceMixer(sampleRate: 44100, releaseSamples: 8, maxVoices: 4);
+        mixer.AddVoice(440, MakeWave(0.2f)); // steady first voice
+
+        var buffer = new float[256];
+        mixer.Mix(buffer); // warm-up past attack
+
+        mixer.AddVoice(660, MakeWave(0.2f)); // add second voice
+        Array.Clear(buffer, 0, buffer.Length);
+        mixer.Mix(buffer);
+
+        float max = buffer.Max();
+        float min = buffer.Min();
+        Assert.InRange(max - min, 0f, 0.25f); // no large spike swing
+
+        // Samples should rise toward steady and stay below a reasonable bound
+        float steady = (0.4f) * 0.6f / (float)Math.Sqrt(2); // linear expectation
+        Assert.All(buffer.Take(64), v => Assert.InRange(v, -0.05f, steady + 0.05f));
+    }
+
+    [Fact]
     public void ReleaseVoiceWhileOthersPlay_DoesNotSpike()
     {
         var mixer = new VoiceMixer(sampleRate: 44100, releaseSamples: 4, maxVoices: 4);
@@ -112,6 +157,32 @@ public class VoiceMixerTests
 
         Assert.All(buffer, v => Assert.InRange(v, -1f, 1f));
         Assert.InRange(MaxDelta(buffer), 0f, 0.2f); // smooth transition with release ramp
+    }
+
+    [Fact]
+    public void ReleaseVoiceWhileOthersPlay_EnvelopeIsBounded()
+    {
+        var mixer = new VoiceMixer(sampleRate: 44100, releaseSamples: 8, maxVoices: 4);
+        mixer.AddVoice(440, MakeWave(0.2f));
+        mixer.AddVoice(660, MakeWave(0.2f));
+
+        var buffer = new float[256];
+        mixer.Mix(buffer); // warm-up
+
+        mixer.ReleaseVoice(660);
+        Array.Clear(buffer, 0, buffer.Length);
+        mixer.Mix(buffer);
+
+        float max = buffer.Max();
+        float min = buffer.Min();
+        Assert.InRange(max, -0.1f, 0.5f);
+        Assert.InRange(min, -0.5f, 0.1f);
+
+        // Toward end, should decay near zero
+        foreach (var v in buffer.Skip(180))
+        {
+            Assert.InRange(v, -0.09f, 0.09f);
+        }
     }
 }
 
