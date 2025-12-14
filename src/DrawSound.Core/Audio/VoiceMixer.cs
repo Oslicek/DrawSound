@@ -159,9 +159,10 @@ public class VoiceMixer
                 }
             }
 
-            // Headroom scaling with simple clamp to avoid resonance/clip spikes
-            float mixScale = 0.5f / Math.Max(1, snapshot.Length);
-            buffer[i] = Math.Clamp(sample * mixScale, -1f, 1f);
+            // Equal-power headroom with gentle soft clip to avoid resonance/clip spikes
+            float mixScale = 0.6f / MathF.Max(1f, MathF.Sqrt(snapshot.Length));
+            float driven = sample * mixScale;
+            buffer[i] = MathF.Tanh(driven); // smooth limiting
         }
 
         lock (_lock)
