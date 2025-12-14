@@ -1,4 +1,4 @@
-using Microsoft.Maui.Input;
+using Microsoft.Maui.Graphics;
 
 namespace DrawSound.Controls;
 
