@@ -38,6 +38,14 @@ public class VoiceMixer
         }
     }
 
+    public void Clear()
+    {
+        lock (_lock)
+        {
+            _voices.Clear();
+        }
+    }
+
     public void AddVoice(double frequency, float[] waveTable)
     {
         var cloned = (float[])waveTable.Clone();

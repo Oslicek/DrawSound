@@ -340,6 +340,7 @@ public partial class MainPage : ContentPage
         if (!_isPlaying)
         {
             WaveformDrawable.SetPlaying(false);
+            _tonePlayer.StopAll(); // ensure no stuck voices
         }
         InvalidateWaveformViews();
 

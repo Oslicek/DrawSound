@@ -53,6 +53,11 @@ public class TonePlayer : ITonePlayer, IDisposable
         _mixer.ReleaseVoice(frequency);
     }
 
+    public void StopAll()
+    {
+        _mixer.Clear();
+    }
+
     private void EnsurePlaybackThread()
     {
         if (_playTask != null && !_playTask.IsCompleted)
