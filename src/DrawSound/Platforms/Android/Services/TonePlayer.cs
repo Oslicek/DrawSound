@@ -1,5 +1,6 @@
 using Android.Media;
 using DrawSound.Core.Audio;
+using Microsoft.Extensions.Options;
 
 namespace DrawSound.Services;
 
@@ -13,10 +14,14 @@ public class TonePlayer : ITonePlayer, IDisposable
     private readonly WaveTableGenerator _waveTableGenerator;
     private float[]? _waveTable;
     private readonly object _waveTableLock = new();
+    private readonly int _releaseSamples;
+    private volatile bool _releasePending;
 
-    public TonePlayer()
+    public TonePlayer(IOptions<AudioSettings> audioOptions)
     {
         _waveTableGenerator = new WaveTableGenerator(SampleRate);
+        var releaseMs = audioOptions.Value.ReleaseMs;
+        _releaseSamples = Math.Max(1, (int)Math.Round(SampleRate * (releaseMs / 1000d)));
     }
 
     public void StartTone(double frequency)
@@ -34,6 +39,7 @@ public class TonePlayer : ITonePlayer, IDisposable
             _waveTable = (float[])waveTable.Clone();
         }
 
+        _releasePending = false;
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
 
@@ -90,6 +96,12 @@ public class TonePlayer : ITonePlayer, IDisposable
 
             int waveTableLength = currentWaveTable.Length;
 
+            if (_releasePending)
+            {
+                WriteRelease(buffer, bufferSamples, currentWaveTable, ref waveTableIndex, waveTableLength);
+                break;
+            }
+
             // Fill buffer by looping through the wavetable
             for (int i = 0; i < bufferSamples; i++)
             {
@@ -110,8 +122,16 @@ public class TonePlayer : ITonePlayer, IDisposable
 
     public void StopTone()
     {
+        _releasePending = true;
+
+        try
+        {
+            _playTask?.Wait(200);
+        }
+        catch { }
+
         _cts?.Cancel();
-        
+
         try
         {
             _playTask?.Wait(100);
@@ -126,6 +146,32 @@ public class TonePlayer : ITonePlayer, IDisposable
         _cts?.Dispose();
         _cts = null;
         _playTask = null;
+    }
+
+    private void WriteRelease(float[] buffer, int bufferSamples, float[] currentWaveTable, ref int waveTableIndex, int waveTableLength)
+    {
+        int releaseCount = Math.Min(_releaseSamples, bufferSamples);
+        for (int i = 0; i < releaseCount; i++)
+        {
+            float gain = 1f - (i / (float)releaseCount);
+            buffer[i] = currentWaveTable[waveTableIndex % waveTableLength] * gain;
+            waveTableIndex = (waveTableIndex + 1) % waveTableLength;
+        }
+
+        // Zero any remainder of the buffer to avoid artifacts
+        if (releaseCount < bufferSamples)
+        {
+            Array.Clear(buffer, releaseCount, bufferSamples - releaseCount);
+        }
+
+        try
+        {
+            _audioTrack?.Write(buffer, 0, bufferSamples, WriteMode.Blocking);
+        }
+        catch
+        {
+            // ignore write errors during release
+        }
     }
 
     public void Dispose()

@@ -16,6 +16,12 @@ public static class MauiProgram
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
             });
 
+        // Configuration
+        builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: false);
+
+        // Options
+        builder.Services.Configure<AudioSettings>(builder.Configuration.GetSection("Audio"));
+
         // Register services
         builder.Services.AddSingleton<ITonePlayer, TonePlayer>();
         builder.Services.AddTransient<MainPage>();
