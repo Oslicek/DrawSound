@@ -44,26 +44,18 @@ public class PianoKeyboard : IDrawable
         _viewWidth = width;
         _viewHeight = height;
 
+        var newKeys = new HashSet<int>();
         foreach (var touch in touches)
         {
             var key = GetKeyAtPosition(touch.X, touch.Y);
-            if (key >= 0) PressKeyInternal(key);
+            if (key >= 0) newKeys.Add(key);
         }
+        UpdateActiveKeys(newKeys);
     }
 
     public void OnTouchesEnd(IEnumerable<(long Id, float X, float Y)> touches)
     {
-        if (!touches.Any())
-        {
-            ReleaseAll();
-            return;
-        }
-
-        foreach (var touch in touches)
-        {
-            var key = GetKeyAtPosition(touch.X, touch.Y);
-            if (key >= 0) ReleaseKeyInternal(key);
-        }
+        ReleaseAll();
     }
 
     private int GetKeyAtPosition(float x, float y)
