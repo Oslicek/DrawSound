@@ -10,7 +10,7 @@ public class PianoKeyboard : IDrawable
     private static readonly bool[] IsBlackKey = new bool[25];
     private static readonly string[] NoteNames = new string[25];
     
-    private HashSet<int> _activeKeys = new();
+    private readonly HashSet<int> _activeKeys = new();
     private float _viewWidth;
     private float _viewHeight;
     
@@ -44,23 +44,26 @@ public class PianoKeyboard : IDrawable
         _viewWidth = width;
         _viewHeight = height;
 
-        var newKeys = new HashSet<int>();
         foreach (var touch in touches)
         {
             var key = GetKeyAtPosition(touch.X, touch.Y);
-            if (key >= 0)
-            {
-                newKeys.Add(key);
-            }
+            if (key >= 0) PressKey(key);
         }
-
-        UpdateActiveKeys(newKeys);
     }
 
     public void OnTouchesEnd(IEnumerable<(long Id, float X, float Y)> touches)
     {
-        // Always clear all keys on interaction end to avoid stuck notes
-        UpdateActiveKeys(new HashSet<int>());
+        if (!touches.Any())
+        {
+            ReleaseAll();
+            return;
+        }
+
+        foreach (var touch in touches)
+        {
+            var key = GetKeyAtPosition(touch.X, touch.Y);
+            if (key >= 0) ReleaseKey(key);
+        }
     }
 
     private int GetKeyAtPosition(float x, float y)
@@ -126,21 +129,30 @@ public class PianoKeyboard : IDrawable
         return 0;
     }
 
-    private void UpdateActiveKeys(HashSet<int> newKeys)
+    private void PressKey(int key)
     {
-        var toPress = newKeys.Except(_activeKeys).ToList();
-        var toRelease = _activeKeys.Except(newKeys).ToList();
-
-        foreach (var k in toPress)
+        if (_activeKeys.Add(key))
         {
-            KeyPressed?.Invoke(this, Frequencies[k]);
+            KeyPressed?.Invoke(this, Frequencies[key]);
         }
-        foreach (var k in toRelease)
+    }
+
+    private void ReleaseKey(int key)
+    {
+        if (_activeKeys.Remove(key))
+        {
+            KeyReleased?.Invoke(this, Frequencies[key]);
+        }
+    }
+
+    private void ReleaseAll()
+    {
+        var keys = _activeKeys.ToList();
+        _activeKeys.Clear();
+        foreach (var k in keys)
         {
             KeyReleased?.Invoke(this, Frequencies[k]);
         }
-
-        _activeKeys = newKeys;
     }
 
     public void Draw(ICanvas canvas, RectF dirtyRect)
