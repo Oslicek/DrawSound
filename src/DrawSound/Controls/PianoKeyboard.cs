@@ -47,7 +47,7 @@ public class PianoKeyboard : IDrawable
         foreach (var touch in touches)
         {
             var key = GetKeyAtPosition(touch.X, touch.Y);
-            if (key >= 0) PressKey(key);
+            if (key >= 0) PressKeyInternal(key);
         }
     }
 
@@ -62,7 +62,7 @@ public class PianoKeyboard : IDrawable
         foreach (var touch in touches)
         {
             var key = GetKeyAtPosition(touch.X, touch.Y);
-            if (key >= 0) ReleaseKey(key);
+            if (key >= 0) ReleaseKeyInternal(key);
         }
     }
 
@@ -134,7 +134,23 @@ public class PianoKeyboard : IDrawable
         var keys = _activeKeys.ToList();
         foreach (var k in keys)
         {
-            ReleaseKey(k);
+            ReleaseKeyInternal(k);
+        }
+    }
+
+    private void PressKeyInternal(int key)
+    {
+        if (_activeKeys.Add(key))
+        {
+            KeyPressed?.Invoke(this, Frequencies[key]);
+        }
+    }
+
+    private void ReleaseKeyInternal(int key)
+    {
+        if (_activeKeys.Remove(key))
+        {
+            KeyReleased?.Invoke(this, Frequencies[key]);
         }
     }
 
