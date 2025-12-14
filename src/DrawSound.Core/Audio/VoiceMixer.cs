@@ -19,6 +19,7 @@ public class VoiceMixer
     }
 
     private const int AttackLengthSamples = 256; // ~6ms at 44.1kHz
+    private const int ReleaseRampSamples = 32;   // short de-click ramp on release start
     private readonly int _sampleRate;
     private readonly int _releaseSamples;
     private readonly int _maxVoices;
@@ -69,7 +70,7 @@ public class VoiceMixer
                 Phase = FindBestStartPhase(cloned),
                 PhaseIncrement = CalcPhaseIncrement(frequency, cloned.Length),
                 Releasing = false,
-                ReleaseSamplesRemaining = _releaseSamples,
+                ReleaseSamplesRemaining = _releaseSamples + ReleaseRampSamples,
                 AttackSamplesRemaining = AttackLengthSamples
             });
         }
@@ -137,9 +138,24 @@ public class VoiceMixer
                 float v1 = table[idx1];
                 float waveSample = v0 + (v1 - v0) * frac;
 
-                float gain = voice.Releasing
-                    ? Math.Max(0f, voice.ReleaseSamplesRemaining / (float)_releaseSamples)
-                    : 1f;
+                float gain;
+                if (voice.Releasing)
+                {
+                    if (voice.ReleaseSamplesRemaining > _releaseSamples)
+                    {
+                        // de-click ramp
+                        int ramp = voice.ReleaseSamplesRemaining - _releaseSamples;
+                        gain = Math.Max(0f, ramp / (float)ReleaseRampSamples);
+                    }
+                    else
+                    {
+                        gain = Math.Max(0f, voice.ReleaseSamplesRemaining / (float)_releaseSamples);
+                    }
+                }
+                else
+                {
+                    gain = 1f;
+                }
 
                 if (voice.AttackSamplesRemaining > 0)
                 {
