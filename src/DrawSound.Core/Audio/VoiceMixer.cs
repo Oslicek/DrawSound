@@ -16,10 +16,12 @@ public class VoiceMixer
         public bool Releasing { get; set; }
         public int ReleaseSamplesRemaining { get; set; }
         public int AttackSamplesRemaining { get; set; }
+        public int ReleaseStartIndex { get; set; }
     }
 
     private const int AttackLengthSamples = 512; // ~11.6ms at 44.1kHz for smooth onset
     private const int ReleaseRampSamples = 64;   // short de-click ramp on release start
+    private const int ExtraReleaseSamples = 128; // additional tail for softer click
     private readonly int _sampleRate;
     private readonly int _releaseSamples;
     private readonly int _maxVoices;
@@ -48,7 +50,8 @@ public class VoiceMixer
             foreach (var v in _voices)
             {
                 v.Releasing = true;
-                v.ReleaseSamplesRemaining = _releaseSamples + ReleaseRampSamples;
+                v.ReleaseSamplesRemaining = _releaseSamples + ReleaseRampSamples + ExtraReleaseSamples;
+                v.ReleaseStartIndex = FindNearestZeroCross(v.WaveTable, (int)v.Phase);
             }
         }
     }
@@ -70,8 +73,9 @@ public class VoiceMixer
                 Phase = FindBestStartPhase(cloned),
                 PhaseIncrement = CalcPhaseIncrement(frequency, cloned.Length),
                 Releasing = false,
-                ReleaseSamplesRemaining = _releaseSamples + ReleaseRampSamples,
-                AttackSamplesRemaining = AttackLengthSamples
+                ReleaseSamplesRemaining = _releaseSamples + ReleaseRampSamples + ExtraReleaseSamples,
+                AttackSamplesRemaining = AttackLengthSamples,
+                ReleaseStartIndex = 0
             });
         }
     }
@@ -102,7 +106,8 @@ public class VoiceMixer
             if (voice != null)
             {
                 voice.Releasing = true;
-                voice.ReleaseSamplesRemaining = _releaseSamples + ReleaseRampSamples;
+                voice.ReleaseSamplesRemaining = _releaseSamples + ReleaseRampSamples + ExtraReleaseSamples;
+                voice.ReleaseStartIndex = FindNearestZeroCross(voice.WaveTable, (int)voice.Phase);
             }
         }
     }
@@ -141,15 +146,16 @@ public class VoiceMixer
                 float gain;
                 if (voice.Releasing)
                 {
-                    if (voice.ReleaseSamplesRemaining > _releaseSamples)
+                    if (voice.ReleaseSamplesRemaining > (_releaseSamples + ExtraReleaseSamples))
                     {
                         // de-click ramp
-                        int ramp = voice.ReleaseSamplesRemaining - _releaseSamples;
-                        gain = Math.Max(0f, ramp / (float)ReleaseRampSamples);
+                        int ramp = voice.ReleaseSamplesRemaining - (_releaseSamples + ExtraReleaseSamples);
+                        gain = MathF.Exp(-3f * (1f - ramp / (float)ReleaseRampSamples)); // exponential ramp
                     }
                     else
                     {
-                        gain = Math.Max(0f, voice.ReleaseSamplesRemaining / (float)_releaseSamples);
+                        int tail = Math.Max(0, voice.ReleaseSamplesRemaining - ExtraReleaseSamples);
+                        gain = MathF.Exp(-5f * (1f - tail / (float)Math.Max(1, _releaseSamples)));
                     }
                 }
                 else
@@ -214,6 +220,26 @@ public class VoiceMixer
             }
         }
         return bestIndex;
+    }
+
+    private int FindNearestZeroCross(float[] table, int startIndex)
+    {
+        int len = table.Length;
+        int best = startIndex;
+        float bestVal = MathF.Abs(table[startIndex % len]);
+        // search up to one cycle for nearest zero crossing
+        for (int i = 1; i < len; i++)
+        {
+            int idx = (startIndex + i) % len;
+            float v = MathF.Abs(table[idx]);
+            if (v < bestVal)
+            {
+                bestVal = v;
+                best = idx;
+                if (bestVal < 1e-4f) break;
+            }
+        }
+        return best;
     }
 }
 
