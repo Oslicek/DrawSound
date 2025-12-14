@@ -10,9 +10,7 @@ public class PianoKeyboard : IDrawable
     private static readonly bool[] IsBlackKey = new bool[25];
     private static readonly string[] NoteNames = new string[25];
     
-    private readonly HashSet<int> _activeKeys = new();
-    private readonly Dictionary<long, int> _touchToKey = new();
-    private readonly Dictionary<int, int> _keyRefCounts = new();
+    private HashSet<int> _activeKeys = new();
     private float _viewWidth;
     private float _viewHeight;
     
@@ -46,19 +44,41 @@ public class PianoKeyboard : IDrawable
         _viewWidth = width;
         _viewHeight = height;
 
+        var newKeys = new HashSet<int>();
         foreach (var touch in touches)
         {
             var key = GetKeyAtPosition(touch.X, touch.Y);
-            HandleTouch(touch.Id, key);
+            if (key >= 0)
+            {
+                newKeys.Add(key);
+            }
         }
+
+        UpdateActiveKeys(newKeys);
     }
 
     public void OnTouchesEnd(IEnumerable<(long Id, float X, float Y)> touches)
     {
+        // On end we remove keys that correspond to ended touches; if empty, clear all
+        if (!touches.Any())
+        {
+            UpdateActiveKeys(new HashSet<int>());
+            return;
+        }
+
+        var endedKeys = new HashSet<int>();
         foreach (var touch in touches)
         {
-            HandleTouchEnd(touch.Id);
+            var key = GetKeyAtPosition(touch.X, touch.Y);
+            if (key >= 0)
+            {
+                endedKeys.Add(key);
+            }
         }
+
+        var remaining = new HashSet<int>(_activeKeys);
+        remaining.ExceptWith(endedKeys);
+        UpdateActiveKeys(remaining);
     }
 
     private int GetKeyAtPosition(float x, float y)
@@ -124,64 +144,21 @@ public class PianoKeyboard : IDrawable
         return 0;
     }
 
-    private void HandleTouch(long touchId, int key)
+    private void UpdateActiveKeys(HashSet<int> newKeys)
     {
-        if (_touchToKey.TryGetValue(touchId, out var prevKey))
-        {
-            if (prevKey == key)
-                return;
+        var toPress = newKeys.Except(_activeKeys).ToList();
+        var toRelease = _activeKeys.Except(newKeys).ToList();
 
-            // release previous mapping
-            ReleaseKey(prevKey);
-            _touchToKey.Remove(touchId);
+        foreach (var k in toPress)
+        {
+            KeyPressed?.Invoke(this, Frequencies[k]);
+        }
+        foreach (var k in toRelease)
+        {
+            KeyReleased?.Invoke(this, Frequencies[k]);
         }
 
-        if (key >= 0)
-        {
-            _touchToKey[touchId] = key;
-            PressKey(key);
-        }
-    }
-
-    private void HandleTouchEnd(long touchId)
-    {
-        if (_touchToKey.TryGetValue(touchId, out var key))
-        {
-            _touchToKey.Remove(touchId);
-            ReleaseKey(key);
-        }
-    }
-
-    private void PressKey(int key)
-    {
-        if (_keyRefCounts.TryGetValue(key, out var count))
-        {
-            _keyRefCounts[key] = count + 1;
-        }
-        else
-        {
-            _keyRefCounts[key] = 1;
-            _activeKeys.Add(key);
-            KeyPressed?.Invoke(this, Frequencies[key]);
-        }
-    }
-
-    private void ReleaseKey(int key)
-    {
-        if (_keyRefCounts.TryGetValue(key, out var count))
-        {
-            count--;
-            if (count <= 0)
-            {
-                _keyRefCounts.Remove(key);
-                _activeKeys.Remove(key);
-                KeyReleased?.Invoke(this, Frequencies[key]);
-            }
-            else
-            {
-                _keyRefCounts[key] = count;
-            }
-        }
+        _activeKeys = newKeys;
     }
 
     public void Draw(ICanvas canvas, RectF dirtyRect)
