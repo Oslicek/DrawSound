@@ -44,13 +44,11 @@ public class PianoKeyboard : IDrawable
         _viewWidth = width;
         _viewHeight = height;
 
-        var newKeys = new HashSet<int>();
         foreach (var touch in touches)
         {
             var key = GetKeyAtPosition(touch.X, touch.Y);
-            if (key >= 0) newKeys.Add(key);
+            if (key >= 0) PressKey(key);
         }
-        UpdateActiveKeys(newKeys);
     }
 
     public void OnTouchesEnd(IEnumerable<(long Id, float X, float Y)> touches)
@@ -61,16 +59,11 @@ public class PianoKeyboard : IDrawable
             return;
         }
 
-        var toRelease = new HashSet<int>();
         foreach (var touch in touches)
         {
             var key = GetKeyAtPosition(touch.X, touch.Y);
-            if (key >= 0) toRelease.Add(key);
+            if (key >= 0) ReleaseKey(key);
         }
-
-        var remaining = new HashSet<int>(_activeKeys);
-        remaining.ExceptWith(toRelease);
-        UpdateActiveKeys(remaining);
     }
 
     private int GetKeyAtPosition(float x, float y)
@@ -136,27 +129,13 @@ public class PianoKeyboard : IDrawable
         return 0;
     }
 
-    private void UpdateActiveKeys(HashSet<int> newKeys)
-    {
-        var toPress = newKeys.Except(_activeKeys).ToList();
-        var toRelease = _activeKeys.Except(newKeys).ToList();
-
-        foreach (var k in toPress)
-        {
-            KeyPressed?.Invoke(this, Frequencies[k]);
-        }
-        foreach (var k in toRelease)
-        {
-            KeyReleased?.Invoke(this, Frequencies[k]);
-        }
-
-        _activeKeys.Clear();
-        foreach (var k in newKeys) _activeKeys.Add(k);
-    }
-
     private void ReleaseAll()
     {
-        UpdateActiveKeys(new HashSet<int>());
+        var keys = _activeKeys.ToList();
+        foreach (var k in keys)
+        {
+            ReleaseKey(k);
+        }
     }
 
     public void Draw(ICanvas canvas, RectF dirtyRect)
