@@ -55,7 +55,7 @@ public class TonePlayer : ITonePlayer, IDisposable
 
     public void StopAll()
     {
-        _mixer.Clear();
+        _mixer.ReleaseAll();
     }
 
     private void EnsurePlaybackThread()

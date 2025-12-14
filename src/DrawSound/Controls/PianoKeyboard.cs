@@ -44,11 +44,13 @@ public class PianoKeyboard : IDrawable
         _viewWidth = width;
         _viewHeight = height;
 
+        var newKeys = new HashSet<int>();
         foreach (var touch in touches)
         {
             var key = GetKeyAtPosition(touch.X, touch.Y);
-            if (key >= 0) PressKey(key);
+            if (key >= 0) newKeys.Add(key);
         }
+        UpdateActiveKeys(newKeys);
     }
 
     public void OnTouchesEnd(IEnumerable<(long Id, float X, float Y)> touches)
@@ -59,11 +61,16 @@ public class PianoKeyboard : IDrawable
             return;
         }
 
+        var toRelease = new HashSet<int>();
         foreach (var touch in touches)
         {
             var key = GetKeyAtPosition(touch.X, touch.Y);
-            if (key >= 0) ReleaseKey(key);
+            if (key >= 0) toRelease.Add(key);
         }
+
+        var remaining = new HashSet<int>(_activeKeys);
+        remaining.ExceptWith(toRelease);
+        UpdateActiveKeys(remaining);
     }
 
     private int GetKeyAtPosition(float x, float y)
@@ -129,30 +136,27 @@ public class PianoKeyboard : IDrawable
         return 0;
     }
 
-    private void PressKey(int key)
+    private void UpdateActiveKeys(HashSet<int> newKeys)
     {
-        if (_activeKeys.Add(key))
-        {
-            KeyPressed?.Invoke(this, Frequencies[key]);
-        }
-    }
+        var toPress = newKeys.Except(_activeKeys).ToList();
+        var toRelease = _activeKeys.Except(newKeys).ToList();
 
-    private void ReleaseKey(int key)
-    {
-        if (_activeKeys.Remove(key))
+        foreach (var k in toPress)
         {
-            KeyReleased?.Invoke(this, Frequencies[key]);
+            KeyPressed?.Invoke(this, Frequencies[k]);
         }
+        foreach (var k in toRelease)
+        {
+            KeyReleased?.Invoke(this, Frequencies[k]);
+        }
+
+        _activeKeys.Clear();
+        foreach (var k in newKeys) _activeKeys.Add(k);
     }
 
     private void ReleaseAll()
     {
-        var keys = _activeKeys.ToList();
-        _activeKeys.Clear();
-        foreach (var k in keys)
-        {
-            KeyReleased?.Invoke(this, Frequencies[k]);
-        }
+        UpdateActiveKeys(new HashSet<int>());
     }
 
     public void Draw(ICanvas canvas, RectF dirtyRect)

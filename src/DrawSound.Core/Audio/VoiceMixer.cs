@@ -38,11 +38,15 @@ public class VoiceMixer
         }
     }
 
-    public void Clear()
+    public void ReleaseAll()
     {
         lock (_lock)
         {
-            _voices.Clear();
+            foreach (var v in _voices)
+            {
+                v.Releasing = true;
+                v.ReleaseSamplesRemaining = _releaseSamples;
+            }
         }
     }
 
