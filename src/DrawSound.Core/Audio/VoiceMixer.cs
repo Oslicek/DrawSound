@@ -19,9 +19,9 @@ public class VoiceMixer
         public int ReleaseStartIndex { get; set; }
     }
 
-    private const int AttackLengthSamples = 512; // ~11.6ms at 44.1kHz for smooth onset
-    private const int ReleaseRampSamples = 64;   // short de-click ramp on release start
-    private const int ExtraReleaseSamples = 128; // additional tail for softer click
+    private const int AttackLengthSamples = 1024; // ~23ms Hann attack
+    private const int ReleaseRampSamples = 1024;  // ~23ms Hann release
+    private const int ExtraReleaseSamples = 0;
     private readonly int _sampleRate;
     private readonly int _releaseSamples;
     private readonly int _maxVoices;
@@ -51,7 +51,7 @@ public class VoiceMixer
             foreach (var v in _voices)
             {
                 v.Releasing = true;
-                v.ReleaseSamplesRemaining = _releaseSamples + ReleaseRampSamples + ExtraReleaseSamples;
+                v.ReleaseSamplesRemaining = ReleaseRampSamples;
                 v.ReleaseStartIndex = FindNearestZeroCross(v.WaveTable, (int)v.Phase);
             }
         }
@@ -74,7 +74,7 @@ public class VoiceMixer
                 Phase = FindBestStartPhase(cloned),
                 PhaseIncrement = CalcPhaseIncrement(frequency, cloned.Length),
                 Releasing = false,
-                ReleaseSamplesRemaining = _releaseSamples + ReleaseRampSamples + ExtraReleaseSamples,
+                ReleaseSamplesRemaining = ReleaseRampSamples,
                 AttackSamplesRemaining = AttackLengthSamples,
                 ReleaseStartIndex = 0
             });
@@ -107,7 +107,7 @@ public class VoiceMixer
             if (voice != null)
             {
                 voice.Releasing = true;
-                voice.ReleaseSamplesRemaining = _releaseSamples + ReleaseRampSamples + ExtraReleaseSamples;
+                voice.ReleaseSamplesRemaining = ReleaseRampSamples;
                 voice.ReleaseStartIndex = FindNearestZeroCross(voice.WaveTable, (int)voice.Phase);
             }
         }
@@ -147,27 +147,26 @@ public class VoiceMixer
                 float gain;
                 if (voice.Releasing)
                 {
-                    if (voice.ReleaseSamplesRemaining > (_releaseSamples + ExtraReleaseSamples))
-                    {
-                        // de-click ramp
-                        int ramp = voice.ReleaseSamplesRemaining - (_releaseSamples + ExtraReleaseSamples);
-                        gain = MathF.Exp(-3f * (1f - ramp / (float)ReleaseRampSamples)); // exponential ramp
-                    }
-                    else
-                    {
-                        int tail = Math.Max(0, voice.ReleaseSamplesRemaining - ExtraReleaseSamples);
-                        gain = MathF.Exp(-5f * (1f - tail / (float)Math.Max(1, _releaseSamples)));
-                    }
+                    // Hann window from 1 -> 0 over ReleaseRampSamples
+                    float t = 1f - (voice.ReleaseSamplesRemaining / (float)ReleaseRampSamples);
+                    gain = 0.5f * (1f + MathF.Cos(MathF.PI * t)); // cos from 1->0
                 }
                 else
                 {
-                    gain = 1f;
+                    // Hann attack from 0 -> 1 over AttackLengthSamples
+                    if (voice.AttackSamplesRemaining > 0)
+                    {
+                        float t = 1f - (voice.AttackSamplesRemaining / (float)AttackLengthSamples);
+                        gain = 0.5f * (1f - MathF.Cos(MathF.PI * t));
+                    }
+                    else
+                    {
+                        gain = 1f;
+                    }
                 }
 
-                if (voice.AttackSamplesRemaining > 0)
+                if (!voice.Releasing && voice.AttackSamplesRemaining > 0)
                 {
-                    float attackGain = 1f - (voice.AttackSamplesRemaining / (float)AttackLengthSamples);
-                    gain *= attackGain;
                     voice.AttackSamplesRemaining--;
                 }
 
