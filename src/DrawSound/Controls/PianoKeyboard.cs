@@ -121,6 +121,22 @@ public class PianoKeyboard : IDrawable
         return 0;
     }
 
+    private void UpdateActiveKeys(HashSet<int> newKeys)
+    {
+        var toPress = newKeys.Except(_activeKeys).ToList();
+        var toRelease = _activeKeys.Except(newKeys).ToList();
+
+        foreach (var k in toPress)
+            PressKeyInternal(k);
+
+        foreach (var k in toRelease)
+            ReleaseKeyInternal(k);
+
+        _activeKeys.Clear();
+        foreach (var k in newKeys)
+            _activeKeys.Add(k);
+    }
+
     private void ReleaseAll()
     {
         var keys = _activeKeys.ToList();
