@@ -1,5 +1,3 @@
-using Microsoft.Maui.Graphics;
-
 namespace DrawSound.Controls;
 
 /// <summary>
@@ -43,19 +41,19 @@ public class PianoKeyboard : IDrawable
         }
     }
 
-    public void OnTouches(IEnumerable<TouchPoint> touches, float width, float height, bool isStart)
+    public void OnTouches(IEnumerable<(long Id, float X, float Y)> touches, float width, float height, bool isStart)
     {
         _viewWidth = width;
         _viewHeight = height;
 
         foreach (var touch in touches)
         {
-            var key = GetKeyAtPosition((float)touch.X, (float)touch.Y);
+            var key = GetKeyAtPosition(touch.X, touch.Y);
             HandleTouch(touch.Id, key);
         }
     }
 
-    public void OnTouchesEnd(IEnumerable<TouchPoint> touches)
+    public void OnTouchesEnd(IEnumerable<(long Id, float X, float Y)> touches)
     {
         foreach (var touch in touches)
         {
