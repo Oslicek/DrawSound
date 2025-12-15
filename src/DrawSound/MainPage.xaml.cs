@@ -44,6 +44,7 @@ public partial class MainPage : ContentPage
     private GraphicsView? _landscapeHarmonicsView;
     private GraphicsView? _landscapePreviewView;
     private GraphicsView? _landscapePianoView;
+    private GraphicsView? _landscapeEnvelopeView;
 
     public MainPage(ITonePlayer tonePlayer)
 	{
