@@ -18,6 +18,7 @@ public partial class MainPage : ContentPage
     private readonly float[] _harmonicLevels;
     private readonly UpdateThrottler _updateThrottler;
     private readonly HarmonicsView _harmonicsControl;
+    private readonly EnvelopeView _envelopeControl;
     private readonly PianoKeyboard _pianoControl;
     private readonly HashSet<double> _activeFrequencies = new();
     private bool _isPlaying;
@@ -36,14 +37,6 @@ public partial class MainPage : ContentPage
         ReleaseMs = 120
     };
     private bool _hold2Infinite = true;
-    private bool _suppressEnvelopeEvents;
-    private Slider? _attackLandscape;
-    private Slider? _hold1Landscape;
-    private Slider? _decayLandscape;
-    private Slider? _sustainLandscape;
-    private Slider? _hold2Landscape;
-    private Slider? _releaseLandscape;
-    private Button? _hold2ToggleLandscape;
     
     // Landscape layout elements
     private Grid? _landscapeLayout;
@@ -65,6 +58,12 @@ public partial class MainPage : ContentPage
         HarmonicsView.Drawable = _harmonicsControl.Drawable;
         
         SetupHarmonicsTouch(HarmonicsView);
+
+        // Envelope sliders
+        _envelopeControl = new EnvelopeView();
+        _envelopeControl.ValueChanged += OnEnvelopeValueChanged;
+        EnvelopeView.Drawable = _envelopeControl.Drawable;
+        SetupEnvelopeTouch(EnvelopeView);
 
         // Piano keyboard
         _pianoControl = new PianoKeyboard();
@@ -129,6 +128,33 @@ public partial class MainPage : ContentPage
         {
             var touches = e.Touches.Select((t, i) => ((long)i, (float)t.X, (float)t.Y)).ToList();
             _pianoControl.OnTouchesEnd(touches);
+            view.Invalidate();
+        };
+    }
+
+    private void SetupEnvelopeTouch(GraphicsView view)
+    {
+        view.StartInteraction += (s, e) =>
+        {
+            var touch = e.Touches.FirstOrDefault();
+            if (touch != default)
+            {
+                _envelopeControl.OnTouch((float)touch.X, (float)touch.Y, (float)view.Width, (float)view.Height, true);
+                view.Invalidate();
+            }
+        };
+        view.DragInteraction += (s, e) =>
+        {
+            var touch = e.Touches.FirstOrDefault();
+            if (touch != default)
+            {
+                _envelopeControl.OnTouch((float)touch.X, (float)touch.Y, (float)view.Width, (float)view.Height, false);
+                view.Invalidate();
+            }
+        };
+        view.EndInteraction += (s, e) =>
+        {
+            _envelopeControl.OnTouchEnd();
             view.Invalidate();
         };
     }
@@ -218,6 +244,7 @@ public partial class MainPage : ContentPage
         _landscapeHarmonicsView!.Drawable = _harmonicsControl.Drawable;
         _landscapePreviewView!.Drawable = PreviewDrawable;
         _landscapePianoView!.Drawable = _pianoControl.Drawable;
+        _landscapeEnvelopeView!.Drawable = _envelopeControl.Drawable;
     }
 
     private void CreateLandscapeLayout()
@@ -289,11 +316,21 @@ public partial class MainPage : ContentPage
         _landscapeLayout.Children.Add(previewBorder);
 
         // Envelope (middle row, full width)
-        var envelopeRow = BuildEnvelopeRow(isLandscape: true);
-        Grid.SetRow(envelopeRow, 1);
-        Grid.SetColumn(envelopeRow, 0);
-        Grid.SetColumnSpan(envelopeRow, 3);
-        _landscapeLayout.Children.Add(envelopeRow);
+        var envelopeBorder = new Border
+        {
+            StrokeShape = new RoundRectangle { CornerRadius = 4 },
+            Stroke = Color.FromArgb("#333"),
+            StrokeThickness = 1,
+            BackgroundColor = Color.FromArgb("#0f0f1a"),
+            Margin = new Thickness(0, 0, 0, 4)
+        };
+        _landscapeEnvelopeView = new GraphicsView();
+        SetupEnvelopeTouch(_landscapeEnvelopeView);
+        envelopeBorder.Content = _landscapeEnvelopeView;
+        Grid.SetRow(envelopeBorder, 1);
+        Grid.SetColumn(envelopeBorder, 0);
+        Grid.SetColumnSpan(envelopeBorder, 3);
+        _landscapeLayout.Children.Add(envelopeBorder);
 
         // Piano (bottom, full width)
         var pianoBorder = new Border
@@ -515,191 +552,48 @@ public partial class MainPage : ContentPage
 
     private void InitEnvelopeUi()
     {
-        _suppressEnvelopeEvents = true;
-        AttackSlider.Value = _envelope.AttackMs;
-        Hold1Slider.Value = _envelope.Hold1Ms;
-        DecaySlider.Value = _envelope.DecayMs;
-        SustainSlider.Value = _envelope.SustainLevel;
-        Hold2Slider.Value = Math.Max(0, _envelope.Hold2Ms);
-        Hold2Slider.IsEnabled = !_hold2Infinite;
-        ReleaseSlider.Value = _envelope.ReleaseMs;
-        UpdateHold2ToggleVisual(Hold2Toggle, _hold2Infinite);
-        _suppressEnvelopeEvents = false;
-    }
-
-    private View BuildEnvelopeRow(bool isLandscape)
-    {
-        var row = new HorizontalStackLayout
-        {
-            Spacing = 6,
-            Padding = new Thickness(4, 0),
-            HorizontalOptions = LayoutOptions.Fill,
-            VerticalOptions = LayoutOptions.Center
-        };
-
-        Slider NewTimeSlider(out Slider store, double min = 0, double max = 1000)
-        {
-            var s = new Slider
-            {
-                Minimum = min,
-                Maximum = max,
-                MinimumTrackColor = Color.FromArgb("#4CAF50"),
-                MaximumTrackColor = Color.FromArgb("#333"),
-                ThumbColor = Color.FromArgb("#4CAF50"),
-                Rotation = 270,
-                HeightRequest = 140,
-                WidthRequest = 30
-            };
-            s.ValueChanged += OnEnvelopeSliderChanged;
-            store = s;
-            return s;
-        }
-
-        Slider NewSustainSlider(out Slider store)
-        {
-            var s = new Slider
-            {
-                Minimum = 0,
-                Maximum = 1,
-                MinimumTrackColor = Color.FromArgb("#2196F3"),
-                MaximumTrackColor = Color.FromArgb("#333"),
-                ThumbColor = Color.FromArgb("#2196F3"),
-                Rotation = 270,
-                HeightRequest = 140,
-                WidthRequest = 30
-            };
-            s.ValueChanged += OnEnvelopeSliderChanged;
-            store = s;
-            return s;
-        }
-
-        Button NewHoldToggle(out Button store)
-        {
-            var b = new Button
-            {
-                Text = "∞",
-                WidthRequest = 30,
-                HeightRequest = 24,
-                FontSize = 12,
-                BackgroundColor = Color.FromArgb("#333"),
-                TextColor = Colors.White
-            };
-            b.Clicked += OnHold2ToggleClicked;
-            store = b;
-            return b;
-        }
-
-        // Attack
-        var atkStack = new VerticalStackLayout { WidthRequest = 64, Spacing = 2 };
-        atkStack.Children.Add(new Label { Text = "Atk", FontSize = 10, TextColor = Color.FromArgb("#ccc"), HorizontalOptions = LayoutOptions.Center });
-        atkStack.Children.Add(NewTimeSlider(out var atk));
-        row.Children.Add(atkStack);
-
-        // Hold1
-        var h1Stack = new VerticalStackLayout { WidthRequest = 64, Spacing = 2 };
-        h1Stack.Children.Add(new Label { Text = "H1", FontSize = 10, TextColor = Color.FromArgb("#ccc"), HorizontalOptions = LayoutOptions.Center });
-        h1Stack.Children.Add(NewTimeSlider(out var h1));
-        row.Children.Add(h1Stack);
-
-        // Decay
-        var decStack = new VerticalStackLayout { WidthRequest = 64, Spacing = 2 };
-        decStack.Children.Add(new Label { Text = "Dec", FontSize = 10, TextColor = Color.FromArgb("#ccc"), HorizontalOptions = LayoutOptions.Center });
-        decStack.Children.Add(NewTimeSlider(out var dec));
-        row.Children.Add(decStack);
-
-        // Sustain
-        var susStack = new VerticalStackLayout { WidthRequest = 64, Spacing = 2 };
-        susStack.Children.Add(new Label { Text = "Sus", FontSize = 10, TextColor = Color.FromArgb("#7cc7ff"), HorizontalOptions = LayoutOptions.Center });
-        susStack.Children.Add(NewSustainSlider(out var sus));
-        row.Children.Add(susStack);
-
-        // Hold2 with toggle
-        var h2Stack = new VerticalStackLayout { WidthRequest = 74, Spacing = 2 };
-        var h2Header = new HorizontalStackLayout { Spacing = 4, HorizontalOptions = LayoutOptions.Center };
-        h2Header.Children.Add(new Label { Text = "H2", FontSize = 10, TextColor = Color.FromArgb("#ccc"), HorizontalOptions = LayoutOptions.Center });
-        h2Header.Children.Add(NewHoldToggle(out var h2Toggle));
-        h2Stack.Children.Add(h2Header);
-        h2Stack.Children.Add(NewTimeSlider(out var h2));
-        row.Children.Add(h2Stack);
-
-        // Release
-        var relStack = new VerticalStackLayout { WidthRequest = 64, Spacing = 2 };
-        relStack.Children.Add(new Label { Text = "Rel", FontSize = 10, TextColor = Color.FromArgb("#ccc"), HorizontalOptions = LayoutOptions.Center });
-        relStack.Children.Add(NewTimeSlider(out var rel));
-        row.Children.Add(relStack);
-
-        if (isLandscape)
-        {
-            _attackLandscape = atk;
-            _hold1Landscape = h1;
-            _decayLandscape = dec;
-            _sustainLandscape = sus;
-            _hold2Landscape = h2;
-            _releaseLandscape = rel;
-            _hold2ToggleLandscape = h2Toggle;
-        }
-
-        return row;
-    }
-
-    private void OnEnvelopeSliderChanged(object? sender, ValueChangedEventArgs e)
-    {
-        if (_suppressEnvelopeEvents) return;
-
-        _suppressEnvelopeEvents = true;
-
-        if (sender == AttackSlider || sender == _attackLandscape)
-            _envelope.AttackMs = (float)Math.Clamp(e.NewValue, 0, 1000);
-        else if (sender == Hold1Slider || sender == _hold1Landscape)
-            _envelope.Hold1Ms = (float)Math.Clamp(e.NewValue, 0, 1000);
-        else if (sender == DecaySlider || sender == _decayLandscape)
-            _envelope.DecayMs = (float)Math.Clamp(e.NewValue, 0, 1000);
-        else if (sender == SustainSlider || sender == _sustainLandscape)
-            _envelope.SustainLevel = (float)Math.Clamp(e.NewValue, 0, 1);
-        else if ((sender == Hold2Slider || sender == _hold2Landscape) && !_hold2Infinite)
-            _envelope.Hold2Ms = (float)Math.Clamp(e.NewValue, 0, 1000);
-        else if (sender == ReleaseSlider || sender == _releaseLandscape)
-            _envelope.ReleaseMs = (float)Math.Clamp(e.NewValue, 0, 1000);
-
         SyncEnvelopeUI();
-        _suppressEnvelopeEvents = false;
+    }
+
+    private void OnEnvelopeValueChanged(object? sender, (int Index, float Value) e)
+    {
+        switch (e.Index)
+        {
+            case 0: _envelope.AttackMs = Math.Clamp(e.Value, 0, 1000); break;
+            case 1: _envelope.Hold1Ms = Math.Clamp(e.Value, 0, 1000); break;
+            case 2: _envelope.DecayMs = Math.Clamp(e.Value, 0, 1000); break;
+            case 3: _envelope.SustainLevel = Math.Clamp(e.Value, 0, 1); break;
+            case 4:
+                if (!_hold2Infinite)
+                    _envelope.Hold2Ms = Math.Clamp(e.Value, 0, 1000);
+                break;
+            case 5: _envelope.ReleaseMs = Math.Clamp(e.Value, 0, 1000); break;
+        }
+        SyncEnvelopeUI();
     }
 
     private void OnHold2ToggleClicked(object? sender, EventArgs e)
     {
         _hold2Infinite = !_hold2Infinite;
-        _envelope.Hold2Ms = _hold2Infinite ? -1 : (float)(Hold2Slider.Value);
+        _envelope.Hold2Ms = _hold2Infinite ? -1 : Math.Max(0, _envelope.Hold2Ms);
         SyncEnvelopeUI();
     }
 
     private void SyncEnvelopeUI()
     {
-        _suppressEnvelopeEvents = true;
-
-        // Portrait sliders
-        AttackSlider.Value = _envelope.AttackMs;
-        Hold1Slider.Value = _envelope.Hold1Ms;
-        DecaySlider.Value = _envelope.DecayMs;
-        SustainSlider.Value = _envelope.SustainLevel;
-        ReleaseSlider.Value = _envelope.ReleaseMs;
-        Hold2Slider.Value = Math.Max(0, _envelope.Hold2Ms);
-        Hold2Slider.IsEnabled = !_hold2Infinite;
-        UpdateHold2ToggleVisual(Hold2Toggle, _hold2Infinite);
-
-        // Landscape sliders (if created)
-        if (_attackLandscape != null)
+        _envelopeControl.SetValues(new[]
         {
-            _attackLandscape.Value = _envelope.AttackMs;
-            _hold1Landscape!.Value = _envelope.Hold1Ms;
-            _decayLandscape!.Value = _envelope.DecayMs;
-            _sustainLandscape!.Value = _envelope.SustainLevel;
-            _releaseLandscape!.Value = _envelope.ReleaseMs;
-            _hold2Landscape!.Value = Math.Max(0, _envelope.Hold2Ms);
-            _hold2Landscape.IsEnabled = !_hold2Infinite;
-            UpdateHold2ToggleVisual(_hold2ToggleLandscape!, _hold2Infinite);
-        }
-
-        _suppressEnvelopeEvents = false;
+            _envelope.AttackMs,
+            _envelope.Hold1Ms,
+            _envelope.DecayMs,
+            _envelope.SustainLevel,
+            Math.Max(0, _envelope.Hold2Ms),
+            _envelope.ReleaseMs
+        });
+        _envelopeControl.SetDisabled(4, _hold2Infinite);
+        UpdateHold2ToggleVisual(Hold2Toggle, _hold2Infinite);
+        _landscapeEnvelopeView?.Invalidate();
+        EnvelopeView.Invalidate();
     }
 
     private static void UpdateHold2ToggleVisual(Button toggle, bool infinite)

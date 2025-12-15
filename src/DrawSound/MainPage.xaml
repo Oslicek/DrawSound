@@ -84,49 +84,18 @@
                HorizontalOptions="Center" Margin="0,4,0,1" />
 
         <!-- Envelope Controls - Row 7 -->
-        <HorizontalStackLayout x:Name="EnvelopePortrait" Grid.Row="7" Spacing="8" Padding="4,0"
-                               HorizontalOptions="Fill" VerticalOptions="Center">
-            <VerticalStackLayout WidthRequest="50" Spacing="2" HorizontalOptions="Center">
-                <Slider x:Name="AttackSlider" Minimum="0" Maximum="1000" ValueChanged="OnEnvelopeSliderChanged"
-                        MinimumTrackColor="#4CAF50" MaximumTrackColor="#333" ThumbColor="#4CAF50"
-                        Rotation="270" HeightRequest="140" />
-                <Label Text="Atk" HorizontalOptions="Center" FontSize="10" TextColor="#ccc"/>
-            </VerticalStackLayout>
-            <VerticalStackLayout WidthRequest="50" Spacing="2" HorizontalOptions="Center">
-                <Slider x:Name="Hold1Slider" Minimum="0" Maximum="1000" ValueChanged="OnEnvelopeSliderChanged"
-                        MinimumTrackColor="#4CAF50" MaximumTrackColor="#333" ThumbColor="#4CAF50"
-                        Rotation="270" HeightRequest="140" />
-                <Label Text="H1" HorizontalOptions="Center" FontSize="10" TextColor="#ccc"/>
-            </VerticalStackLayout>
-            <VerticalStackLayout WidthRequest="50" Spacing="2" HorizontalOptions="Center">
-                <Slider x:Name="DecaySlider" Minimum="0" Maximum="1000" ValueChanged="OnEnvelopeSliderChanged"
-                        MinimumTrackColor="#4CAF50" MaximumTrackColor="#333" ThumbColor="#4CAF50"
-                        Rotation="270" HeightRequest="140" />
-                <Label Text="Dec" HorizontalOptions="Center" FontSize="10" TextColor="#ccc"/>
-            </VerticalStackLayout>
-            <VerticalStackLayout WidthRequest="50" Spacing="2" HorizontalOptions="Center">
-                <Slider x:Name="SustainSlider" Minimum="0" Maximum="1" ValueChanged="OnEnvelopeSliderChanged"
-                        MinimumTrackColor="#2196F3" MaximumTrackColor="#333" ThumbColor="#2196F3"
-                        Rotation="270" HeightRequest="140" />
-                <Label Text="Sus" HorizontalOptions="Center" FontSize="10" TextColor="#7cc7ff"/>
-            </VerticalStackLayout>
-            <VerticalStackLayout WidthRequest="60" Spacing="2" HorizontalOptions="Center">
-                <Slider x:Name="Hold2Slider" Minimum="0" Maximum="1000" ValueChanged="OnEnvelopeSliderChanged"
-                        MinimumTrackColor="#4CAF50" MaximumTrackColor="#333" ThumbColor="#4CAF50"
-                        Rotation="270" HeightRequest="140" />
-                <HorizontalStackLayout Spacing="4" HorizontalOptions="Center">
-                    <Label Text="H2" HorizontalOptions="Center" FontSize="10" TextColor="#ccc"/>
-                    <Button x:Name="Hold2Toggle" Text="∞" WidthRequest="30" HeightRequest="24" FontSize="12"
-                            BackgroundColor="#333" TextColor="White" Clicked="OnHold2ToggleClicked"/>
-                </HorizontalStackLayout>
-            </VerticalStackLayout>
-            <VerticalStackLayout WidthRequest="50" Spacing="2" HorizontalOptions="Center">
-                <Slider x:Name="ReleaseSlider" Minimum="0" Maximum="1000" ValueChanged="OnEnvelopeSliderChanged"
-                        MinimumTrackColor="#4CAF50" MaximumTrackColor="#333" ThumbColor="#4CAF50"
-                        Rotation="270" HeightRequest="140" />
-                <Label Text="Rel" HorizontalOptions="Center" FontSize="10" TextColor="#ccc"/>
-            </VerticalStackLayout>
-        </HorizontalStackLayout>
+        <Grid Grid.Row="7" ColumnDefinitions="Auto,*" Padding="4,0">
+            <Button x:Name="Hold2Toggle" Text="∞" WidthRequest="36" HeightRequest="28" FontSize="12"
+                    BackgroundColor="#333" TextColor="White" Clicked="OnHold2ToggleClicked"
+                    HorizontalOptions="Start" VerticalOptions="Center" Margin="0,0,6,0"/>
+            <Border Grid.Column="1"
+                    StrokeShape="RoundRectangle 4"
+                    Stroke="#333"
+                    StrokeThickness="1"
+                    BackgroundColor="#0f0f1a">
+                <GraphicsView x:Name="EnvelopeView" />
+            </Border>
+        </Grid>
 
         <!-- Piano Keyboard - Row 8 -->
         <Border Grid.Row="8"
