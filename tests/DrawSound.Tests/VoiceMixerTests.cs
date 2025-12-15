@@ -77,11 +77,11 @@ public class VoiceMixerTests
         var buffer = new float[32];
         mixer.Mix(buffer);
 
-        // Expected steady value: (0.1 + 0.1) * 0.6 / sqrt(2)
-        float expected = (0.2f) * 0.6f / (float)Math.Sqrt(2);
+        // Expected steady value with mix scale 0.6 / voices
+        float expected = (0.2f) * (0.6f / 2f);
         foreach (var v in buffer)
         {
-            Assert.InRange(v, expected - 0.1f, expected + 0.1f);
+            Assert.InRange(v, expected - 0.05f, expected + 0.05f);
         }
     }
 
