@@ -12,8 +12,16 @@
     <PropertyGroup>
       <CommitHash>$([System.String]::Copy('$(CommitHashRaw)').Trim())</CommitHash>
     </PropertyGroup>
+    <ItemGroup>
+      <CommitInfoLines Include="namespace DrawSound%3B" />
+      <CommitInfoLines Include="public static class BuildInfo" />
+      <CommitInfoLines Include="{" />
+      <CommitInfoLines Include="    public const string CommitHash = &quot;$(CommitHash)&quot;%3B" />
+      <CommitInfoLines Include="}" />
+    </ItemGroup>
+
     <WriteLinesToFile File="$(GeneratedCommitInfo)"
-                      Lines="namespace DrawSound; public static class BuildInfo { public const string CommitHash = &quot;$(CommitHash)&quot;; }"
+                      Lines="@(CommitInfoLines)"
                       Overwrite="true" />
     <ItemGroup>
       <Compile Include="$(GeneratedCommitInfo)" />

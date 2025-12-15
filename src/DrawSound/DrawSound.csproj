@@ -65,4 +65,9 @@
 	  <ProjectReference Include="..\DrawSound.Core\DrawSound.Core.csproj" />
 	</ItemGroup>
 
+	<!-- Ensure generated commit info is available to XamlC -->
+	<ItemGroup>
+	  <Compile Include="..\GeneratedCommitInfo.cs" />
+	</ItemGroup>
+
 </Project>
