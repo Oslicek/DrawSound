@@ -18,7 +18,7 @@ public class VoiceMixer
         public int AttackSamplesRemaining { get; set; }
     }
 
-    private const int AttackLengthSamples = 64;
+    private const int AttackLengthSamples = 128; // ~3ms @44.1kHz for gentler onset
     private readonly int _sampleRate;
     private readonly int _releaseSamples;
     private readonly int _maxVoices;
@@ -159,7 +159,7 @@ public class VoiceMixer
                 }
             }
 
-            // Pure linear mix (no headroom scaling/clipping) to preserve phase accuracy
+            // Pure linear mix (no scaling/clamping) to match ideal sums
             buffer[i] = sample;
         }
 

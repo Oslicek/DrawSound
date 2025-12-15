@@ -261,7 +261,7 @@ public class VoiceMixerTests
         var expected = idealC3.Zip(idealE3, (a, b) => a + b).ToArray();
 
         var error = MeanAbsError(expected, buffer);
-        Assert.True(false, $"C3/E3 mix error observed: {error}");
+        Assert.True(error < 0.001f, $"C3/E3 mix error observed: {error}");
     }
 
     [Fact]
@@ -289,7 +289,7 @@ public class VoiceMixerTests
         var expected = idealA.Zip(idealB, (x, y) => x + y).ToArray();
 
         var error = MeanAbsError(expected, buffer);
-        Assert.True(false, $"C3/Db3 mix error observed: {error}");
+        Assert.True(error < 0.001f, $"C3/Db3 mix error observed: {error}");
     }
 
     [Fact]
@@ -317,7 +317,7 @@ public class VoiceMixerTests
         var expected = idealA.Zip(idealB, (x, y) => x + y).ToArray();
 
         var error = MeanAbsError(expected, buffer);
-        Assert.True(false, $"C3/D3 mix error observed: {error}");
+        Assert.True(error < 0.001f, $"C3/D3 mix error observed: {error}");
     }
 
     [Fact]
@@ -345,7 +345,7 @@ public class VoiceMixerTests
         var expected = idealA.Zip(idealB, (x, y) => x + y).ToArray();
 
         var error = MeanAbsError(expected, buffer);
-        Assert.True(false, $"C5/Db5 mix error observed: {error}");
+        Assert.True(error < 0.001f, $"C5/Db5 mix error observed: {error}");
     }
 
     [Fact]
@@ -373,7 +373,7 @@ public class VoiceMixerTests
         var expected = idealA.Zip(idealB, (x, y) => x + y).ToArray();
 
         var error = MeanAbsError(expected, buffer);
-        Assert.True(false, $"C5/D5 mix error observed: {error}");
+        Assert.True(error < 0.001f, $"C5/D5 mix error observed: {error}");
     }
 }
 
