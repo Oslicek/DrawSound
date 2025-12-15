@@ -261,8 +261,119 @@ public class VoiceMixerTests
         var expected = idealC3.Zip(idealE3, (a, b) => a + b).ToArray();
 
         var error = MeanAbsError(expected, buffer);
-        // This will currently fail; ideal linear mix should stay within this tolerance
-        Assert.True(error < 0.05f, $"Mean absolute error too high: {error}");
+        Assert.True(false, $"C3/E3 mix error observed: {error}");
+    }
+
+    [Fact]
+    public void Mix_TwoSines_C3_Db3_ShouldMatchIdealSum()
+    {
+        const int sampleRate = 44100;
+        const float c3 = 130.81f;
+        const float db3 = 138.59f; // minor second above C3
+
+        var mixer = new VoiceMixer(sampleRate: sampleRate, releaseSamples: 8, maxVoices: 4);
+        var aTable = MakeSineTable(c3, sampleRate);
+        var bTable = MakeSineTable(db3, sampleRate);
+
+        mixer.AddVoice(c3, aTable);
+        mixer.AddVoice(db3, bTable);
+
+        var warm = new float[256];
+        mixer.Mix(warm);
+
+        var buffer = new float[512];
+        mixer.Mix(buffer);
+
+        var idealA = RenderVoice(aTable, c3, sampleRate, warm.Length, buffer.Length);
+        var idealB = RenderVoice(bTable, db3, sampleRate, warm.Length, buffer.Length);
+        var expected = idealA.Zip(idealB, (x, y) => x + y).ToArray();
+
+        var error = MeanAbsError(expected, buffer);
+        Assert.True(false, $"C3/Db3 mix error observed: {error}");
+    }
+
+    [Fact]
+    public void Mix_TwoSines_C3_D3_ShouldMatchIdealSum()
+    {
+        const int sampleRate = 44100;
+        const float c3 = 130.81f;
+        const float d3 = 146.83f; // major second above C3
+
+        var mixer = new VoiceMixer(sampleRate: sampleRate, releaseSamples: 8, maxVoices: 4);
+        var aTable = MakeSineTable(c3, sampleRate);
+        var bTable = MakeSineTable(d3, sampleRate);
+
+        mixer.AddVoice(c3, aTable);
+        mixer.AddVoice(d3, bTable);
+
+        var warm = new float[256];
+        mixer.Mix(warm);
+
+        var buffer = new float[512];
+        mixer.Mix(buffer);
+
+        var idealA = RenderVoice(aTable, c3, sampleRate, warm.Length, buffer.Length);
+        var idealB = RenderVoice(bTable, d3, sampleRate, warm.Length, buffer.Length);
+        var expected = idealA.Zip(idealB, (x, y) => x + y).ToArray();
+
+        var error = MeanAbsError(expected, buffer);
+        Assert.True(false, $"C3/D3 mix error observed: {error}");
+    }
+
+    [Fact]
+    public void Mix_TwoSines_C5_Db5_ShouldMatchIdealSum()
+    {
+        const int sampleRate = 44100;
+        const float c5 = 523.25f;
+        const float db5 = 554.37f; // minor second above C5
+
+        var mixer = new VoiceMixer(sampleRate: sampleRate, releaseSamples: 8, maxVoices: 4);
+        var aTable = MakeSineTable(c5, sampleRate);
+        var bTable = MakeSineTable(db5, sampleRate);
+
+        mixer.AddVoice(c5, aTable);
+        mixer.AddVoice(db5, bTable);
+
+        var warm = new float[256];
+        mixer.Mix(warm);
+
+        var buffer = new float[512];
+        mixer.Mix(buffer);
+
+        var idealA = RenderVoice(aTable, c5, sampleRate, warm.Length, buffer.Length);
+        var idealB = RenderVoice(bTable, db5, sampleRate, warm.Length, buffer.Length);
+        var expected = idealA.Zip(idealB, (x, y) => x + y).ToArray();
+
+        var error = MeanAbsError(expected, buffer);
+        Assert.True(false, $"C5/Db5 mix error observed: {error}");
+    }
+
+    [Fact]
+    public void Mix_TwoSines_C5_D5_ShouldMatchIdealSum()
+    {
+        const int sampleRate = 44100;
+        const float c5 = 523.25f;
+        const float d5 = 587.33f; // major second above C5
+
+        var mixer = new VoiceMixer(sampleRate: sampleRate, releaseSamples: 8, maxVoices: 4);
+        var aTable = MakeSineTable(c5, sampleRate);
+        var bTable = MakeSineTable(d5, sampleRate);
+
+        mixer.AddVoice(c5, aTable);
+        mixer.AddVoice(d5, bTable);
+
+        var warm = new float[256];
+        mixer.Mix(warm);
+
+        var buffer = new float[512];
+        mixer.Mix(buffer);
+
+        var idealA = RenderVoice(aTable, c5, sampleRate, warm.Length, buffer.Length);
+        var idealB = RenderVoice(bTable, d5, sampleRate, warm.Length, buffer.Length);
+        var expected = idealA.Zip(idealB, (x, y) => x + y).ToArray();
+
+        var error = MeanAbsError(expected, buffer);
+        Assert.True(false, $"C5/D5 mix error observed: {error}");
     }
 }
 
