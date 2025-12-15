@@ -640,25 +640,20 @@ public partial class MainPage : ContentPage
     {
         if (_suppressEnvelopeEvents) return;
 
-        void SetTime(ref float field, double val)
-        {
-            field = (float)Math.Clamp(val, 0, 1000);
-        }
-
         _suppressEnvelopeEvents = true;
 
         if (sender == AttackSlider || sender == _attackLandscape)
-            SetTime(ref _envelope.AttackMs, e.NewValue);
+            _envelope.AttackMs = (float)Math.Clamp(e.NewValue, 0, 1000);
         else if (sender == Hold1Slider || sender == _hold1Landscape)
-            SetTime(ref _envelope.Hold1Ms, e.NewValue);
+            _envelope.Hold1Ms = (float)Math.Clamp(e.NewValue, 0, 1000);
         else if (sender == DecaySlider || sender == _decayLandscape)
-            SetTime(ref _envelope.DecayMs, e.NewValue);
+            _envelope.DecayMs = (float)Math.Clamp(e.NewValue, 0, 1000);
         else if (sender == SustainSlider || sender == _sustainLandscape)
             _envelope.SustainLevel = (float)Math.Clamp(e.NewValue, 0, 1);
         else if ((sender == Hold2Slider || sender == _hold2Landscape) && !_hold2Infinite)
-            SetTime(ref _envelope.Hold2Ms, e.NewValue);
+            _envelope.Hold2Ms = (float)Math.Clamp(e.NewValue, 0, 1000);
         else if (sender == ReleaseSlider || sender == _releaseLandscape)
-            SetTime(ref _envelope.ReleaseMs, e.NewValue);
+            _envelope.ReleaseMs = (float)Math.Clamp(e.NewValue, 0, 1000);
 
         SyncEnvelopeUI();
         _suppressEnvelopeEvents = false;
