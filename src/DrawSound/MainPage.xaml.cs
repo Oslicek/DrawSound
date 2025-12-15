@@ -545,7 +545,10 @@ public partial class MainPage : ContentPage
                 Maximum = max,
                 MinimumTrackColor = Color.FromArgb("#4CAF50"),
                 MaximumTrackColor = Color.FromArgb("#333"),
-                ThumbColor = Color.FromArgb("#4CAF50")
+                ThumbColor = Color.FromArgb("#4CAF50"),
+                Rotation = 270,
+                HeightRequest = 140,
+                WidthRequest = 30
             };
             s.ValueChanged += OnEnvelopeSliderChanged;
             store = s;
@@ -560,7 +563,10 @@ public partial class MainPage : ContentPage
                 Maximum = 1,
                 MinimumTrackColor = Color.FromArgb("#2196F3"),
                 MaximumTrackColor = Color.FromArgb("#333"),
-                ThumbColor = Color.FromArgb("#2196F3")
+                ThumbColor = Color.FromArgb("#2196F3"),
+                Rotation = 270,
+                HeightRequest = 140,
+                WidthRequest = 30
             };
             s.ValueChanged += OnEnvelopeSliderChanged;
             store = s;
