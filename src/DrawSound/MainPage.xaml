@@ -11,7 +11,7 @@
     <Grid x:Name="PortraitLayout" RowDefinitions="Auto, 100, Auto, 80, Auto, 50, *" Padding="8" IsVisible="True">
 
         <!-- Commit hash label -->
-        <Label Text="{x:Static BuildInfo.CommitHash}"
+        <Label Text="{x:Static local:BuildInfo.CommitHash}"
                FontSize="8"
                TextColor="#666"
                HorizontalOptions="Start"
