@@ -71,6 +71,7 @@ DrawSound/
 |-----------|----------|---------|
 | `WaveTableGenerator` | Core | Generates sine wave tables |
 | `VoiceMixer` | Core | Polyphonic voice mixing with per-voice release |
+| `AHDSHREnvelope` | Core | Envelope shaping (Attack, Hold1, Decay, Sustain, Hold2, Release) |
 | `ITonePlayer` | DrawSound | Audio playback interface |
 | `TonePlayer` | Android | AudioTrack player using `VoiceMixer` |
 | `MainPage` | DrawSound | Synth UI (Bezier editor, harmonics, preview, keyboard) |
@@ -107,6 +108,7 @@ DrawSound/
 - [x] Short attack/release envelopes to avoid clicks on note on/off
 - [x] 6-voice polyphony via `VoiceMixer` + AudioTrack with headroom scaling
 - [x] Mixer regression tests for mix accuracy and attack/release transitions
+- [ ] AHDSHR envelope (A/H1/D/S/H2/R) planned; tests added, implementation pending
 
 **Current Features:**
 - Playable 25-key keyboard (C3–C5), multi-touch mapped to per-voice playback
@@ -114,6 +116,9 @@ DrawSound/
 - Harmonic sliders (6) controlling overtones; mixed preview view
 - Single-cycle preview rendering; throttled UI/audio updates
 - Configurable audio settings (`appsettings.json`): `ReleaseMs`, `MaxPolyphony`
+- Planned envelope variables (AHDSHR):
+  - AttackMs, Hold1Ms, DecayMs, SustainLevel (0..1), Hold2Ms (if -1, sustain until release), ReleaseMs
+  - To be applied to mixer output; algorithms pending implementation
 
 ## Notes
 
