@@ -159,9 +159,8 @@ public class VoiceMixer
                 }
             }
 
-            // Headroom scaling to reduce distortion when voices sum (keep linear)
-            float mixScale = 0.45f / Math.Max(1, snapshot.Length);
-            buffer[i] = Math.Clamp(sample * mixScale, -1f, 1f);
+            // Pure linear mix (no headroom scaling/clipping) to preserve phase accuracy
+            buffer[i] = sample;
         }
 
         lock (_lock)

@@ -1,4 +1,5 @@
 using DrawSound.Core.Audio;
+using System.Linq;
 using Xunit;
 
 namespace DrawSound.Tests;
@@ -6,6 +7,54 @@ namespace DrawSound.Tests;
 public class VoiceMixerTests
 {
     private static float[] MakeWave(params float[] samples) => samples;
+    private static float[] MakeSineTable(float frequency, int sampleRate)
+    {
+        int len = Math.Max(8, (int)Math.Round(sampleRate / frequency));
+        var table = new float[len];
+        for (int i = 0; i < len; i++)
+        {
+            table[i] = MathF.Sin(2 * MathF.PI * i / len);
+        }
+        return table;
+    }
+    private static float[] RenderVoice(float[] table, double frequency, int sampleRate, int warmSamples, int count)
+    {
+        float[] output = new float[count];
+        float phase = 0f;
+        float step = (float)(table.Length * frequency / sampleRate);
+
+        // warm-up
+        for (int i = 0; i < warmSamples; i++)
+        {
+            phase += step;
+            if (phase >= table.Length) phase -= table.Length;
+        }
+
+        for (int i = 0; i < count; i++)
+        {
+            int idx0 = (int)phase;
+            int idx1 = (idx0 + 1) % table.Length;
+            float frac = phase - idx0;
+            float v0 = table[idx0];
+            float v1 = table[idx1];
+            output[i] = v0 + (v1 - v0) * frac;
+
+            phase += step;
+            if (phase >= table.Length) phase -= table.Length;
+        }
+
+        return output;
+    }
+    private static float MeanAbsError(IReadOnlyList<float> a, IReadOnlyList<float> b)
+    {
+        float sum = 0f;
+        int n = Math.Min(a.Count, b.Count);
+        for (int i = 0; i < n; i++)
+        {
+            sum += MathF.Abs(a[i] - b[i]);
+        }
+        return sum / n;
+    }
     private static float MaxDelta(IReadOnlyList<float> data)
     {
         float max = 0f;
@@ -77,8 +126,8 @@ public class VoiceMixerTests
         var buffer = new float[32];
         mixer.Mix(buffer);
 
-        // Expected steady value with mix scale 0.6 / voices
-        float expected = (0.2f) * (0.6f / 2f);
+        // Expected steady value with linear mix (no headroom)
+        float expected = 0.2f;
         foreach (var v in buffer)
         {
             Assert.InRange(v, expected - 0.05f, expected + 0.05f);
@@ -134,11 +183,11 @@ public class VoiceMixerTests
 
         float max = buffer.Max();
         float min = buffer.Min();
-        Assert.InRange(max - min, 0f, 0.7f); // relaxed for older mixer envelope
+        Assert.InRange(max - min, 0f, 1.2f); // relaxed for linear mix
 
         // Samples should rise toward steady and stay below a reasonable bound
-        float steady = (0.4f) * 0.6f / (float)Math.Sqrt(2); // linear expectation
-        Assert.All(buffer.Take(64), v => Assert.InRange(v, -0.1f, steady + 0.15f));
+        float steady = 0.4f; // linear expectation
+        Assert.All(buffer.Take(64), v => Assert.InRange(v, -0.2f, steady + 0.2f));
     }
 
     [Fact]
@@ -183,6 +232,37 @@ public class VoiceMixerTests
         {
             Assert.InRange(v, -0.2f, 0.2f);
         }
+    }
+
+    [Fact]
+    public void Mix_TwoSines_C3_E3_ShouldMatchIdealSum()
+    {
+        const int sampleRate = 44100;
+        const float c3 = 130.81f;
+        const float e3 = 164.81f;
+
+        var mixer = new VoiceMixer(sampleRate: sampleRate, releaseSamples: 8, maxVoices: 4);
+        var c3Table = MakeSineTable(c3, sampleRate);
+        var e3Table = MakeSineTable(e3, sampleRate);
+
+        mixer.AddVoice(c3, c3Table);
+        mixer.AddVoice(e3, e3Table);
+
+        // Warm-up past attack
+        var warm = new float[256];
+        mixer.Mix(warm);
+
+        var buffer = new float[512];
+        mixer.Mix(buffer);
+
+        // Ideal mix using the same wavetable playback (no headroom scaling/clipping)
+        var idealC3 = RenderVoice(c3Table, c3, sampleRate, warm.Length, buffer.Length);
+        var idealE3 = RenderVoice(e3Table, e3, sampleRate, warm.Length, buffer.Length);
+        var expected = idealC3.Zip(idealE3, (a, b) => a + b).ToArray();
+
+        var error = MeanAbsError(expected, buffer);
+        // This will currently fail; ideal linear mix should stay within this tolerance
+        Assert.True(error < 0.05f, $"Mean absolute error too high: {error}");
     }
 }
 
