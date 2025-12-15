@@ -159,9 +159,8 @@ public class VoiceMixer
                 }
             }
 
-            // Headroom + soft clip to reduce intermodulation and prevent clipping
-            float mixScale = 0.6f / Math.Max(1, snapshot.Length);
-            float driven = sample * mixScale;
+            // Soft clip to avoid hard gain jumps/clipping when voices start/stop
+            float driven = sample;
             float clipped = driven / (1f + MathF.Abs(driven));
             buffer[i] = clipped;
         }
