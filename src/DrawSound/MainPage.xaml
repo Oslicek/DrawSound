@@ -8,7 +8,7 @@
              SizeChanged="OnPageSizeChanged">
 
     <!-- Portrait Layout (default) -->
-    <Grid x:Name="PortraitLayout" RowDefinitions="Auto, 100, Auto, 80, Auto, 50, *" Padding="8" IsVisible="True">
+    <Grid x:Name="PortraitLayout" RowDefinitions="Auto, 100, Auto, 80, Auto, 50, *" Padding="4" IsVisible="True">
 
         <!-- Commit hash label -->
         <Label Text="{x:Static local:BuildInfo.CommitHash}"
