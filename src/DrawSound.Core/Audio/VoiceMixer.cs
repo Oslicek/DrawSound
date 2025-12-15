@@ -159,11 +159,9 @@ public class VoiceMixer
                 }
             }
 
-            // Headroom scaling and soft clip to reduce distortion when voices sum
-            float mixScale = 0.6f / Math.Max(1, snapshot.Length);
-            float driven = sample * mixScale;
-            float clipped = driven / (1f + MathF.Abs(driven));
-            buffer[i] = clipped;
+            // Headroom scaling to reduce distortion when voices sum (keep linear)
+            float mixScale = 0.45f / Math.Max(1, snapshot.Length);
+            buffer[i] = Math.Clamp(sample * mixScale, -1f, 1f);
         }
 
         lock (_lock)
