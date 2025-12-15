@@ -8,7 +8,7 @@
              SizeChanged="OnPageSizeChanged">
 
     <!-- Portrait Layout (default) -->
-    <Grid x:Name="PortraitLayout" RowDefinitions="Auto, 100, Auto, 80, Auto, 50, Auto, 70, *" Padding="4" IsVisible="True">
+    <Grid x:Name="PortraitLayout" RowDefinitions="Auto, 100, Auto, 80, Auto, 50, Auto, 130, *" Padding="4" IsVisible="True">
 
         <!-- Commit hash label -->
         <Label Text="{x:Static local:BuildInfo.CommitHash}"
@@ -84,41 +84,47 @@
                HorizontalOptions="Center" Margin="0,4,0,1" />
 
         <!-- Envelope Controls - Row 7 -->
-        <HorizontalStackLayout x:Name="EnvelopePortrait" Grid.Row="7" Spacing="6" Padding="4,0"
+        <HorizontalStackLayout x:Name="EnvelopePortrait" Grid.Row="7" Spacing="8" Padding="4,0"
                                HorizontalOptions="Fill" VerticalOptions="Center">
-            <VerticalStackLayout WidthRequest="64" Spacing="2">
-                <Label Text="Atk" HorizontalOptions="Center" FontSize="10" TextColor="#ccc"/>
+            <VerticalStackLayout WidthRequest="50" Spacing="2" HorizontalOptions="Center">
                 <Slider x:Name="AttackSlider" Minimum="0" Maximum="1000" ValueChanged="OnEnvelopeSliderChanged"
-                        MinimumTrackColor="#4CAF50" MaximumTrackColor="#333" ThumbColor="#4CAF50"/>
+                        MinimumTrackColor="#4CAF50" MaximumTrackColor="#333" ThumbColor="#4CAF50"
+                        Rotation="270" HeightRequest="140" />
+                <Label Text="Atk" HorizontalOptions="Center" FontSize="10" TextColor="#ccc"/>
             </VerticalStackLayout>
-            <VerticalStackLayout WidthRequest="64" Spacing="2">
-                <Label Text="H1" HorizontalOptions="Center" FontSize="10" TextColor="#ccc"/>
+            <VerticalStackLayout WidthRequest="50" Spacing="2" HorizontalOptions="Center">
                 <Slider x:Name="Hold1Slider" Minimum="0" Maximum="1000" ValueChanged="OnEnvelopeSliderChanged"
-                        MinimumTrackColor="#4CAF50" MaximumTrackColor="#333" ThumbColor="#4CAF50"/>
+                        MinimumTrackColor="#4CAF50" MaximumTrackColor="#333" ThumbColor="#4CAF50"
+                        Rotation="270" HeightRequest="140" />
+                <Label Text="H1" HorizontalOptions="Center" FontSize="10" TextColor="#ccc"/>
             </VerticalStackLayout>
-            <VerticalStackLayout WidthRequest="64" Spacing="2">
-                <Label Text="Dec" HorizontalOptions="Center" FontSize="10" TextColor="#ccc"/>
+            <VerticalStackLayout WidthRequest="50" Spacing="2" HorizontalOptions="Center">
                 <Slider x:Name="DecaySlider" Minimum="0" Maximum="1000" ValueChanged="OnEnvelopeSliderChanged"
-                        MinimumTrackColor="#4CAF50" MaximumTrackColor="#333" ThumbColor="#4CAF50"/>
+                        MinimumTrackColor="#4CAF50" MaximumTrackColor="#333" ThumbColor="#4CAF50"
+                        Rotation="270" HeightRequest="140" />
+                <Label Text="Dec" HorizontalOptions="Center" FontSize="10" TextColor="#ccc"/>
             </VerticalStackLayout>
-            <VerticalStackLayout WidthRequest="64" Spacing="2">
-                <Label Text="Sus" HorizontalOptions="Center" FontSize="10" TextColor="#7cc7ff"/>
+            <VerticalStackLayout WidthRequest="50" Spacing="2" HorizontalOptions="Center">
                 <Slider x:Name="SustainSlider" Minimum="0" Maximum="1" ValueChanged="OnEnvelopeSliderChanged"
-                        MinimumTrackColor="#2196F3" MaximumTrackColor="#333" ThumbColor="#2196F3"/>
+                        MinimumTrackColor="#2196F3" MaximumTrackColor="#333" ThumbColor="#2196F3"
+                        Rotation="270" HeightRequest="140" />
+                <Label Text="Sus" HorizontalOptions="Center" FontSize="10" TextColor="#7cc7ff"/>
             </VerticalStackLayout>
-            <VerticalStackLayout WidthRequest="74" Spacing="2">
+            <VerticalStackLayout WidthRequest="60" Spacing="2" HorizontalOptions="Center">
+                <Slider x:Name="Hold2Slider" Minimum="0" Maximum="1000" ValueChanged="OnEnvelopeSliderChanged"
+                        MinimumTrackColor="#4CAF50" MaximumTrackColor="#333" ThumbColor="#4CAF50"
+                        Rotation="270" HeightRequest="140" />
                 <HorizontalStackLayout Spacing="4" HorizontalOptions="Center">
                     <Label Text="H2" HorizontalOptions="Center" FontSize="10" TextColor="#ccc"/>
                     <Button x:Name="Hold2Toggle" Text="∞" WidthRequest="30" HeightRequest="24" FontSize="12"
                             BackgroundColor="#333" TextColor="White" Clicked="OnHold2ToggleClicked"/>
                 </HorizontalStackLayout>
-                <Slider x:Name="Hold2Slider" Minimum="0" Maximum="1000" ValueChanged="OnEnvelopeSliderChanged"
-                        MinimumTrackColor="#4CAF50" MaximumTrackColor="#333" ThumbColor="#4CAF50"/>
             </VerticalStackLayout>
-            <VerticalStackLayout WidthRequest="64" Spacing="2">
-                <Label Text="Rel" HorizontalOptions="Center" FontSize="10" TextColor="#ccc"/>
+            <VerticalStackLayout WidthRequest="50" Spacing="2" HorizontalOptions="Center">
                 <Slider x:Name="ReleaseSlider" Minimum="0" Maximum="1000" ValueChanged="OnEnvelopeSliderChanged"
-                        MinimumTrackColor="#4CAF50" MaximumTrackColor="#333" ThumbColor="#4CAF50"/>
+                        MinimumTrackColor="#4CAF50" MaximumTrackColor="#333" ThumbColor="#4CAF50"
+                        Rotation="270" HeightRequest="140" />
+                <Label Text="Rel" HorizontalOptions="Center" FontSize="10" TextColor="#ccc"/>
             </VerticalStackLayout>
         </HorizontalStackLayout>
 

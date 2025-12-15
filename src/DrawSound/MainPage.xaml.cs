@@ -227,7 +227,7 @@ public partial class MainPage : ContentPage
             RowDefinitions = new RowDefinitionCollection
             {
                 new RowDefinition(new GridLength(1, GridUnitType.Star)),
-                new RowDefinition(new GridLength(70)),
+                new RowDefinition(new GridLength(130)),
                 new RowDefinition(new GridLength(80))
             },
             ColumnDefinitions = new ColumnDefinitionCollection
