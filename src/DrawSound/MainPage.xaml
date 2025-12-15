@@ -8,7 +8,7 @@
              SizeChanged="OnPageSizeChanged">
 
     <!-- Portrait Layout (default) -->
-    <Grid x:Name="PortraitLayout" RowDefinitions="Auto, 100, Auto, 80, Auto, 50, *" Padding="4" IsVisible="True">
+    <Grid x:Name="PortraitLayout" RowDefinitions="Auto, 100, Auto, 80, Auto, 50, Auto, 70, *" Padding="4" IsVisible="True">
 
         <!-- Commit hash label -->
         <Label Text="{x:Static local:BuildInfo.CommitHash}"
@@ -79,8 +79,51 @@
             </GraphicsView>
         </Border>
 
-        <!-- Piano Keyboard - Row 6 -->
-        <Border Grid.Row="6"
+        <!-- Envelope Label - Row 6 -->
+        <Label Grid.Row="6" Text="Envelope" TextColor="#666" FontSize="9"
+               HorizontalOptions="Center" Margin="0,4,0,1" />
+
+        <!-- Envelope Controls - Row 7 -->
+        <HorizontalStackLayout x:Name="EnvelopePortrait" Grid.Row="7" Spacing="6" Padding="4,0"
+                               HorizontalOptions="Fill" VerticalOptions="Center">
+            <VerticalStackLayout WidthRequest="64" Spacing="2">
+                <Label Text="Atk" HorizontalOptions="Center" FontSize="10" TextColor="#ccc"/>
+                <Slider x:Name="AttackSlider" Minimum="0" Maximum="1000" ValueChanged="OnEnvelopeSliderChanged"
+                        MinimumTrackColor="#4CAF50" MaximumTrackColor="#333" ThumbColor="#4CAF50"/>
+            </VerticalStackLayout>
+            <VerticalStackLayout WidthRequest="64" Spacing="2">
+                <Label Text="H1" HorizontalOptions="Center" FontSize="10" TextColor="#ccc"/>
+                <Slider x:Name="Hold1Slider" Minimum="0" Maximum="1000" ValueChanged="OnEnvelopeSliderChanged"
+                        MinimumTrackColor="#4CAF50" MaximumTrackColor="#333" ThumbColor="#4CAF50"/>
+            </VerticalStackLayout>
+            <VerticalStackLayout WidthRequest="64" Spacing="2">
+                <Label Text="Dec" HorizontalOptions="Center" FontSize="10" TextColor="#ccc"/>
+                <Slider x:Name="DecaySlider" Minimum="0" Maximum="1000" ValueChanged="OnEnvelopeSliderChanged"
+                        MinimumTrackColor="#4CAF50" MaximumTrackColor="#333" ThumbColor="#4CAF50"/>
+            </VerticalStackLayout>
+            <VerticalStackLayout WidthRequest="64" Spacing="2">
+                <Label Text="Sus" HorizontalOptions="Center" FontSize="10" TextColor="#7cc7ff"/>
+                <Slider x:Name="SustainSlider" Minimum="0" Maximum="1" ValueChanged="OnEnvelopeSliderChanged"
+                        MinimumTrackColor="#2196F3" MaximumTrackColor="#333" ThumbColor="#2196F3"/>
+            </VerticalStackLayout>
+            <VerticalStackLayout WidthRequest="74" Spacing="2">
+                <HorizontalStackLayout Spacing="4" HorizontalOptions="Center">
+                    <Label Text="H2" HorizontalOptions="Center" FontSize="10" TextColor="#ccc"/>
+                    <Button x:Name="Hold2Toggle" Text="∞" WidthRequest="30" HeightRequest="24" FontSize="12"
+                            BackgroundColor="#333" TextColor="White" Clicked="OnHold2ToggleClicked"/>
+                </HorizontalStackLayout>
+                <Slider x:Name="Hold2Slider" Minimum="0" Maximum="1000" ValueChanged="OnEnvelopeSliderChanged"
+                        MinimumTrackColor="#4CAF50" MaximumTrackColor="#333" ThumbColor="#4CAF50"/>
+            </VerticalStackLayout>
+            <VerticalStackLayout WidthRequest="64" Spacing="2">
+                <Label Text="Rel" HorizontalOptions="Center" FontSize="10" TextColor="#ccc"/>
+                <Slider x:Name="ReleaseSlider" Minimum="0" Maximum="1000" ValueChanged="OnEnvelopeSliderChanged"
+                        MinimumTrackColor="#4CAF50" MaximumTrackColor="#333" ThumbColor="#4CAF50"/>
+            </VerticalStackLayout>
+        </HorizontalStackLayout>
+
+        <!-- Piano Keyboard - Row 8 -->
+        <Border Grid.Row="8"
                 StrokeShape="RoundRectangle 4"
                 Stroke="#444"
                 StrokeThickness="1"

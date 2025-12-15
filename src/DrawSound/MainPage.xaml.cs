@@ -26,6 +26,24 @@ public partial class MainPage : ContentPage
     private float _canvasHeight;
     private DateTime _lastWaveformInvalidate = DateTime.MinValue;
     private bool _isLandscape;
+    private readonly AHDSHRSettings _envelope = new()
+    {
+        AttackMs = 10,
+        Hold1Ms = 0,
+        DecayMs = 60,
+        SustainLevel = 0.7f,
+        Hold2Ms = -1,
+        ReleaseMs = 120
+    };
+    private bool _hold2Infinite = true;
+    private bool _suppressEnvelopeEvents;
+    private Slider? _attackLandscape;
+    private Slider? _hold1Landscape;
+    private Slider? _decayLandscape;
+    private Slider? _sustainLandscape;
+    private Slider? _hold2Landscape;
+    private Slider? _releaseLandscape;
+    private Button? _hold2ToggleLandscape;
     
     // Landscape layout elements
     private Grid? _landscapeLayout;
@@ -58,6 +76,8 @@ public partial class MainPage : ContentPage
 
         WaveformDrawable.WaveTableChanged += OnWaveTableChanged;
         
+        InitEnvelopeUi();
+
         // Initial preview update
         Dispatcher.Dispatch(UpdatePreview);
     }
@@ -207,6 +227,7 @@ public partial class MainPage : ContentPage
             RowDefinitions = new RowDefinitionCollection
             {
                 new RowDefinition(new GridLength(1, GridUnitType.Star)),
+                new RowDefinition(new GridLength(70)),
                 new RowDefinition(new GridLength(80))
             },
             ColumnDefinitions = new ColumnDefinitionCollection
@@ -267,6 +288,13 @@ public partial class MainPage : ContentPage
         Grid.SetColumn(previewBorder, 2);
         _landscapeLayout.Children.Add(previewBorder);
 
+        // Envelope (middle row, full width)
+        var envelopeRow = BuildEnvelopeRow(isLandscape: true);
+        Grid.SetRow(envelopeRow, 1);
+        Grid.SetColumn(envelopeRow, 0);
+        Grid.SetColumnSpan(envelopeRow, 3);
+        _landscapeLayout.Children.Add(envelopeRow);
+
         // Piano (bottom, full width)
         var pianoBorder = new Border
         {
@@ -277,10 +305,12 @@ public partial class MainPage : ContentPage
         _landscapePianoView = new GraphicsView();
         SetupPianoTouch(_landscapePianoView);
         pianoBorder.Content = _landscapePianoView;
-        Grid.SetRow(pianoBorder, 1);
+        Grid.SetRow(pianoBorder, 2);
         Grid.SetColumn(pianoBorder, 0);
         Grid.SetColumnSpan(pianoBorder, 3);
         _landscapeLayout.Children.Add(pianoBorder);
+
+        SyncEnvelopeUI();
 
         // Add control buttons overlay (top-left corner)
         var buttonsStack = new HorizontalStackLayout
@@ -481,5 +511,199 @@ public partial class MainPage : ContentPage
     {
         _canvasWidth = (float)WaveformView.Width;
         _canvasHeight = (float)WaveformView.Height;
+	}
+
+    private void InitEnvelopeUi()
+    {
+        _suppressEnvelopeEvents = true;
+        AttackSlider.Value = _envelope.AttackMs;
+        Hold1Slider.Value = _envelope.Hold1Ms;
+        DecaySlider.Value = _envelope.DecayMs;
+        SustainSlider.Value = _envelope.SustainLevel;
+        Hold2Slider.Value = Math.Max(0, _envelope.Hold2Ms);
+        Hold2Slider.IsEnabled = !_hold2Infinite;
+        ReleaseSlider.Value = _envelope.ReleaseMs;
+        UpdateHold2ToggleVisual(Hold2Toggle, _hold2Infinite);
+        _suppressEnvelopeEvents = false;
+    }
+
+    private View BuildEnvelopeRow(bool isLandscape)
+    {
+        var row = new HorizontalStackLayout
+        {
+            Spacing = 6,
+            Padding = new Thickness(4, 0),
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        Slider NewTimeSlider(out Slider store, double min = 0, double max = 1000)
+        {
+            var s = new Slider
+            {
+                Minimum = min,
+                Maximum = max,
+                MinimumTrackColor = Color.FromArgb("#4CAF50"),
+                MaximumTrackColor = Color.FromArgb("#333"),
+                ThumbColor = Color.FromArgb("#4CAF50")
+            };
+            s.ValueChanged += OnEnvelopeSliderChanged;
+            store = s;
+            return s;
+        }
+
+        Slider NewSustainSlider(out Slider store)
+        {
+            var s = new Slider
+            {
+                Minimum = 0,
+                Maximum = 1,
+                MinimumTrackColor = Color.FromArgb("#2196F3"),
+                MaximumTrackColor = Color.FromArgb("#333"),
+                ThumbColor = Color.FromArgb("#2196F3")
+            };
+            s.ValueChanged += OnEnvelopeSliderChanged;
+            store = s;
+            return s;
+        }
+
+        Button NewHoldToggle(out Button store)
+        {
+            var b = new Button
+            {
+                Text = "∞",
+                WidthRequest = 30,
+                HeightRequest = 24,
+                FontSize = 12,
+                BackgroundColor = Color.FromArgb("#333"),
+                TextColor = Colors.White
+            };
+            b.Clicked += OnHold2ToggleClicked;
+            store = b;
+            return b;
+        }
+
+        // Attack
+        var atkStack = new VerticalStackLayout { WidthRequest = 64, Spacing = 2 };
+        atkStack.Children.Add(new Label { Text = "Atk", FontSize = 10, TextColor = Color.FromArgb("#ccc"), HorizontalOptions = LayoutOptions.Center });
+        atkStack.Children.Add(NewTimeSlider(out var atk));
+        row.Children.Add(atkStack);
+
+        // Hold1
+        var h1Stack = new VerticalStackLayout { WidthRequest = 64, Spacing = 2 };
+        h1Stack.Children.Add(new Label { Text = "H1", FontSize = 10, TextColor = Color.FromArgb("#ccc"), HorizontalOptions = LayoutOptions.Center });
+        h1Stack.Children.Add(NewTimeSlider(out var h1));
+        row.Children.Add(h1Stack);
+
+        // Decay
+        var decStack = new VerticalStackLayout { WidthRequest = 64, Spacing = 2 };
+        decStack.Children.Add(new Label { Text = "Dec", FontSize = 10, TextColor = Color.FromArgb("#ccc"), HorizontalOptions = LayoutOptions.Center });
+        decStack.Children.Add(NewTimeSlider(out var dec));
+        row.Children.Add(decStack);
+
+        // Sustain
+        var susStack = new VerticalStackLayout { WidthRequest = 64, Spacing = 2 };
+        susStack.Children.Add(new Label { Text = "Sus", FontSize = 10, TextColor = Color.FromArgb("#7cc7ff"), HorizontalOptions = LayoutOptions.Center });
+        susStack.Children.Add(NewSustainSlider(out var sus));
+        row.Children.Add(susStack);
+
+        // Hold2 with toggle
+        var h2Stack = new VerticalStackLayout { WidthRequest = 74, Spacing = 2 };
+        var h2Header = new HorizontalStackLayout { Spacing = 4, HorizontalOptions = LayoutOptions.Center };
+        h2Header.Children.Add(new Label { Text = "H2", FontSize = 10, TextColor = Color.FromArgb("#ccc"), HorizontalOptions = LayoutOptions.Center });
+        h2Header.Children.Add(NewHoldToggle(out var h2Toggle));
+        h2Stack.Children.Add(h2Header);
+        h2Stack.Children.Add(NewTimeSlider(out var h2));
+        row.Children.Add(h2Stack);
+
+        // Release
+        var relStack = new VerticalStackLayout { WidthRequest = 64, Spacing = 2 };
+        relStack.Children.Add(new Label { Text = "Rel", FontSize = 10, TextColor = Color.FromArgb("#ccc"), HorizontalOptions = LayoutOptions.Center });
+        relStack.Children.Add(NewTimeSlider(out var rel));
+        row.Children.Add(relStack);
+
+        if (isLandscape)
+        {
+            _attackLandscape = atk;
+            _hold1Landscape = h1;
+            _decayLandscape = dec;
+            _sustainLandscape = sus;
+            _hold2Landscape = h2;
+            _releaseLandscape = rel;
+            _hold2ToggleLandscape = h2Toggle;
+        }
+
+        return row;
+    }
+
+    private void OnEnvelopeSliderChanged(object? sender, ValueChangedEventArgs e)
+    {
+        if (_suppressEnvelopeEvents) return;
+
+        void SetTime(ref float field, double val)
+        {
+            field = (float)Math.Clamp(val, 0, 1000);
+        }
+
+        _suppressEnvelopeEvents = true;
+
+        if (sender == AttackSlider || sender == _attackLandscape)
+            SetTime(ref _envelope.AttackMs, e.NewValue);
+        else if (sender == Hold1Slider || sender == _hold1Landscape)
+            SetTime(ref _envelope.Hold1Ms, e.NewValue);
+        else if (sender == DecaySlider || sender == _decayLandscape)
+            SetTime(ref _envelope.DecayMs, e.NewValue);
+        else if (sender == SustainSlider || sender == _sustainLandscape)
+            _envelope.SustainLevel = (float)Math.Clamp(e.NewValue, 0, 1);
+        else if ((sender == Hold2Slider || sender == _hold2Landscape) && !_hold2Infinite)
+            SetTime(ref _envelope.Hold2Ms, e.NewValue);
+        else if (sender == ReleaseSlider || sender == _releaseLandscape)
+            SetTime(ref _envelope.ReleaseMs, e.NewValue);
+
+        SyncEnvelopeUI();
+        _suppressEnvelopeEvents = false;
+    }
+
+    private void OnHold2ToggleClicked(object? sender, EventArgs e)
+    {
+        _hold2Infinite = !_hold2Infinite;
+        _envelope.Hold2Ms = _hold2Infinite ? -1 : (float)(Hold2Slider.Value);
+        SyncEnvelopeUI();
+    }
+
+    private void SyncEnvelopeUI()
+    {
+        _suppressEnvelopeEvents = true;
+
+        // Portrait sliders
+        AttackSlider.Value = _envelope.AttackMs;
+        Hold1Slider.Value = _envelope.Hold1Ms;
+        DecaySlider.Value = _envelope.DecayMs;
+        SustainSlider.Value = _envelope.SustainLevel;
+        ReleaseSlider.Value = _envelope.ReleaseMs;
+        Hold2Slider.Value = Math.Max(0, _envelope.Hold2Ms);
+        Hold2Slider.IsEnabled = !_hold2Infinite;
+        UpdateHold2ToggleVisual(Hold2Toggle, _hold2Infinite);
+
+        // Landscape sliders (if created)
+        if (_attackLandscape != null)
+        {
+            _attackLandscape.Value = _envelope.AttackMs;
+            _hold1Landscape!.Value = _envelope.Hold1Ms;
+            _decayLandscape!.Value = _envelope.DecayMs;
+            _sustainLandscape!.Value = _envelope.SustainLevel;
+            _releaseLandscape!.Value = _envelope.ReleaseMs;
+            _hold2Landscape!.Value = Math.Max(0, _envelope.Hold2Ms);
+            _hold2Landscape.IsEnabled = !_hold2Infinite;
+            UpdateHold2ToggleVisual(_hold2ToggleLandscape!, _hold2Infinite);
+        }
+
+        _suppressEnvelopeEvents = false;
+    }
+
+    private static void UpdateHold2ToggleVisual(Button toggle, bool infinite)
+    {
+        toggle.Text = infinite ? "∞" : "↺";
+        toggle.BackgroundColor = infinite ? Color.FromArgb("#555") : Color.FromArgb("#2a5a2a");
 	}
 }
