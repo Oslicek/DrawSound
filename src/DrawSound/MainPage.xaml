@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:graphics="clr-namespace:DrawSound.Graphics"
+             xmlns:local="clr-namespace:DrawSound"
              x:Class="DrawSound.MainPage"
              BackgroundColor="#1a1a2e"
              SizeChanged="OnPageSizeChanged">
@@ -10,7 +11,7 @@
     <Grid x:Name="PortraitLayout" RowDefinitions="Auto, 100, Auto, 80, Auto, 50, *" Padding="8" IsVisible="True">
 
         <!-- Commit hash label -->
-        <Label Text="dba9481"
+        <Label Text="{x:Static local:BuildInfo.CommitHash}"
                FontSize="8"
                TextColor="#666"
                HorizontalOptions="Start"
