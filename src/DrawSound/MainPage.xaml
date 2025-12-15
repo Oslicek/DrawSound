@@ -8,6 +8,14 @@
 
     <!-- Portrait Layout (default) -->
     <Grid x:Name="PortraitLayout" RowDefinitions="Auto, 100, Auto, 80, Auto, 50, *" Padding="8" IsVisible="True">
+
+        <!-- Commit hash label -->
+        <Label Text="dba9481"
+               FontSize="8"
+               TextColor="#666"
+               HorizontalOptions="Start"
+               VerticalOptions="Start"
+               Margin="1,1,0,0" />
     
         <!-- Control Buttons - Row 0 -->
         <HorizontalStackLayout Grid.Row="0" 
