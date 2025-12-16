@@ -404,9 +404,9 @@ public class VoiceMixerTests
         var idealG = RenderVoice(gTable, g4, sampleRate, warm.Length, buffer.Length);
         var expected = idealC.Zip(idealE, (a, b) => a + b).Zip(idealG, (s, c) => s + c).ToArray();
 
-        var error = MeanAbsError(expected, buffer);
-        // Very tight tolerance to reveal current distortion/beating; test should fail until mixer is fixed.
-        Assert.True(error < 1e-5f, $"C4/E4/G4 mix error observed: {error}");
+        var maxError = expected.Zip(buffer, (exp, got) => MathF.Abs(exp - got)).Max();
+        // Require exact alignment; current mixer should fail until fixed.
+        Assert.True(maxError == 0f, $"C4/E4/G4 mix error observed: {maxError}");
     }
 }
 
