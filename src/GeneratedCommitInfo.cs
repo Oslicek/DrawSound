@@ -1,5 +1,5 @@
 namespace DrawSound;
 public static class BuildInfo
 {
-public const string CommitHash = "5f5cf37";
+public const string CommitHash = "792793d";
 }

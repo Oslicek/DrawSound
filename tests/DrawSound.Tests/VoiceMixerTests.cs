@@ -375,5 +375,38 @@ public class VoiceMixerTests
         var error = MeanAbsError(expected, buffer);
         Assert.True(error < 0.001f, $"C5/D5 mix error observed: {error}");
     }
+
+    [Fact]
+    public void Mix_ThreeSines_C4_E4_G4_ShouldMatchIdealSum()
+    {
+        const int sampleRate = 44100;
+        const float c4 = 261.63f;
+        const float e4 = 329.63f;
+        const float g4 = 392.00f;
+
+        var mixer = new VoiceMixer(sampleRate: sampleRate, releaseSamples: 8, maxVoices: 6);
+        var cTable = MakeSineTable(c4, sampleRate);
+        var eTable = MakeSineTable(e4, sampleRate);
+        var gTable = MakeSineTable(g4, sampleRate);
+
+        mixer.AddVoice(c4, cTable);
+        mixer.AddVoice(e4, eTable);
+        mixer.AddVoice(g4, gTable);
+
+        var warm = new float[512];
+        mixer.Mix(warm); // advance past attack
+
+        var buffer = new float[1024];
+        mixer.Mix(buffer);
+
+        var idealC = RenderVoice(cTable, c4, sampleRate, warm.Length, buffer.Length);
+        var idealE = RenderVoice(eTable, e4, sampleRate, warm.Length, buffer.Length);
+        var idealG = RenderVoice(gTable, g4, sampleRate, warm.Length, buffer.Length);
+        var expected = idealC.Zip(idealE, (a, b) => a + b).Zip(idealG, (s, c) => s + c).ToArray();
+
+        var error = MeanAbsError(expected, buffer);
+        // Very tight tolerance to reveal current distortion/beating; test should fail until mixer is fixed.
+        Assert.True(error < 1e-5f, $"C4/E4/G4 mix error observed: {error}");
+    }
 }
 
