@@ -20,6 +20,7 @@ public class TonePlayer : ITonePlayer, IDisposable
     private Task? _playTask;
     
     private const int SampleRate = 44100;
+    private const float MasterGain = 0.3f; // headroom to avoid output clipping when mixing chords
     private readonly WaveTableGenerator _waveTableGenerator;
     private readonly VoiceMixer _mixer;
 
@@ -99,6 +100,13 @@ public class TonePlayer : ITonePlayer, IDisposable
         while (!token.IsCancellationRequested)
         {
             _mixer.Mix(buffer);
+
+            // Apply master headroom and gentle soft-limit to prevent DAC clipping
+            for (int i = 0; i < buffer.Length; i++)
+            {
+                float s = buffer[i] * MasterGain;
+                buffer[i] = (float)(Math.Tanh(s)); // soft clip keeps peaks bounded smoothly
+            }
 
             try
             {

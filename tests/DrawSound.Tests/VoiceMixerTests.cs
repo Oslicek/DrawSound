@@ -405,8 +405,7 @@ public class VoiceMixerTests
         var expected = idealC.Zip(idealE, (a, b) => a + b).Zip(idealG, (s, c) => s + c).ToArray();
 
         var maxError = expected.Zip(buffer, (exp, got) => MathF.Abs(exp - got)).Max();
-        // Explicitly fail until the mixer matches ideal linear sum for the triad.
-        Assert.True(false, $"C4/E4/G4 mix error observed: {maxError}");
+        Assert.True(maxError < 1e-5f, $"C4/E4/G4 mix error observed: {maxError}");
     }
 }
 
