@@ -65,6 +65,7 @@ public partial class MainPage : ContentPage
         _envelopeControl.ValueChanged += OnEnvelopeValueChanged;
         EnvelopeView.Drawable = _envelopeControl.Drawable;
         SetupEnvelopeTouch(EnvelopeView);
+        _tonePlayer.UpdateEnvelope(_envelope);
 
         // Piano keyboard
         _pianoControl = new PianoKeyboard();
@@ -325,9 +326,31 @@ public partial class MainPage : ContentPage
             BackgroundColor = Color.FromArgb("#0f0f1a"),
             Margin = new Thickness(0, 0, 0, 4)
         };
+        var envelopeGrid = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitionCollection
+            {
+                new ColumnDefinition(new GridLength(40)),
+                new ColumnDefinition(new GridLength(1, GridUnitType.Star))
+            }
+        };
+        _hold2ToggleLandscape = new Button
+        {
+            Text = "∞",
+            WidthRequest = 34,
+            HeightRequest = 28,
+            FontSize = 12,
+            BackgroundColor = Color.FromArgb("#333"),
+            TextColor = Colors.White,
+            Margin = new Thickness(4, 8, 4, 8)
+        };
+        _hold2ToggleLandscape.Clicked += OnHold2ToggleClicked;
         _landscapeEnvelopeView = new GraphicsView();
         SetupEnvelopeTouch(_landscapeEnvelopeView);
-        envelopeBorder.Content = _landscapeEnvelopeView;
+        envelopeGrid.Add(_hold2ToggleLandscape);
+        Grid.SetColumn(_landscapeEnvelopeView, 1);
+        envelopeGrid.Add(_landscapeEnvelopeView);
+        envelopeBorder.Content = envelopeGrid;
         Grid.SetRow(envelopeBorder, 1);
         Grid.SetColumn(envelopeBorder, 0);
         Grid.SetColumnSpan(envelopeBorder, 3);
@@ -571,6 +594,7 @@ public partial class MainPage : ContentPage
             case 5: _envelope.ReleaseMs = Math.Clamp(e.Value, 0, 1000); break;
         }
         SyncEnvelopeUI();
+        _tonePlayer.UpdateEnvelope(_envelope);
     }
 
     private void OnHold2ToggleClicked(object? sender, EventArgs e)
@@ -578,6 +602,7 @@ public partial class MainPage : ContentPage
         _hold2Infinite = !_hold2Infinite;
         _envelope.Hold2Ms = _hold2Infinite ? -1 : Math.Max(0, _envelope.Hold2Ms);
         SyncEnvelopeUI();
+        _tonePlayer.UpdateEnvelope(_envelope);
     }
 
     private void SyncEnvelopeUI()
@@ -593,12 +618,14 @@ public partial class MainPage : ContentPage
         });
         _envelopeControl.SetDisabled(4, _hold2Infinite);
         UpdateHold2ToggleVisual(Hold2Toggle, _hold2Infinite);
+        UpdateHold2ToggleVisual(_hold2ToggleLandscape, _hold2Infinite);
         _landscapeEnvelopeView?.Invalidate();
         EnvelopeView.Invalidate();
     }
 
-    private static void UpdateHold2ToggleVisual(Button toggle, bool infinite)
+    private static void UpdateHold2ToggleVisual(Button? toggle, bool infinite)
     {
+        if (toggle == null) return;
         toggle.Text = infinite ? "∞" : "↺";
         toggle.BackgroundColor = infinite ? Color.FromArgb("#555") : Color.FromArgb("#2a5a2a");
 	}

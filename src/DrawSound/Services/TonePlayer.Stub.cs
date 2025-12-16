@@ -10,9 +10,10 @@ public class TonePlayer : ITonePlayer
 {
     public void StartTone(double frequency) { }
     public void StartTone(double frequency, float[] waveTable) { }
+    public void UpdateWaveTable(double frequency, float[] waveTable) { }
+    public void UpdateEnvelope(AHDSHRSettings settings) { }
     public void StopTone(double frequency) { }
-    public void StopAllTones() { }
-    public void UpdateWaveTable(float[] waveTable) { }
+    public void StopAll() { }
 }
 #endif
 

@@ -23,6 +23,15 @@ public class TonePlayer : ITonePlayer, IDisposable
     private const float MasterGain = 0.3f; // headroom to avoid output clipping when mixing chords
     private readonly WaveTableGenerator _waveTableGenerator;
     private readonly VoiceMixer _mixer;
+    private AHDSHRSettings _envelope = new()
+    {
+        AttackMs = 10,
+        Hold1Ms = 0,
+        DecayMs = 60,
+        SustainLevel = 0.7f,
+        Hold2Ms = -1,
+        ReleaseMs = 120
+    };
 
     public TonePlayer(IOptions<AudioSettings> audioOptions)
     {
@@ -47,6 +56,12 @@ public class TonePlayer : ITonePlayer, IDisposable
     public void UpdateWaveTable(double frequency, float[] waveTable)
     {
         _mixer.UpdateVoice(frequency, waveTable);
+    }
+
+    public void UpdateEnvelope(AHDSHRSettings settings)
+    {
+        _envelope = settings;
+        _mixer.SetEnvelope(settings);
     }
 
     public void StopTone(double frequency)
