@@ -37,6 +37,7 @@ public partial class MainPage : ContentPage
         ReleaseMs = 120
     };
     private bool _hold2Infinite = true;
+    private Button? _hold2ToggleLandscape;
     
     // Landscape layout elements
     private Grid? _landscapeLayout;
